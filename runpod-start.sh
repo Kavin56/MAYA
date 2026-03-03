@@ -110,7 +110,7 @@ if command -v opencode &>/dev/null; then
   sleep 2  # give opencode time to start
 else
   echo "⚠  opencode not found — the server will work but AI features require opencode installed."
-  echo "   Install: curl -fsSL https://opencode.ai/install | sh"
+  echo "   Install: curl -fsSL https://opencode.ai/install | bash"
 fi
 
 # ─── Start maya-server (OpenWork) on port 8787 ───────────────────────────────
