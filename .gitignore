@@ -1,0 +1,55 @@
+node_modules/
+packages/*/node_modules/
+.next/
+out/
+dist/
+packages/*/dist/
+tmp/
+
+# Local git worktrees
+_worktrees/
+
+# Tauri/Rust
+packages/desktop/src-tauri/target/
+packages/desktop/src-tauri/sidecars/
+# Large compiled binaries — all exceed GitHub's 100MB limit
+packages/desktop/src-tauri/*.exe
+packages/desktop/src-tauri/*.bin
+packages/desktop/src-tauri/*.dylib
+packages/desktop/src-tauri/*.so
+packages/desktop/src-tauri/opencode*
+packages/desktop/src-tauri/chrome-devtools*
+packages/desktop/src-tauri/openwork*
+packages/desktop/src-tauri/maya*
+# Server compiled binary
+packages/server/cli
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Bun build artifacts
+*.bun-build
+
+# pnpm store (created by Docker volume mounts)
+.pnpm-store/
+
+# Docker dev workspace (ephemeral mount point)
+packaging/docker/workspace/
+
+# OS
+.DS_Store
+
+# OpenCode mirror
+vendor/opencode/
+
+# OpenCode local deps
+.opencode/node_modules/
+.opencode/bun.lock
+
+# OpenWork workspace-local artifacts
+.opencode/openwork/
+.vercel
+.env*.local

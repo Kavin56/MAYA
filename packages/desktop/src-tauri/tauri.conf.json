@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MAYA",
+  "version": "1.3.4",
+  "identifier": "com.maya.ai",
+  "build": {
+    "beforeDevCommand": "node ./scripts/prepare-sidecar.mjs",
+    "beforeBuildCommand": "pnpm -C ../.. --filter maya-desktop run prepare:sidecar && pnpm -w build:ui",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../../app/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "MAYA",
+        "width": 1180,
+        "height": 820,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "entitlements": "./entitlements.plist"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "sidecars/opencode",
+      "sidecars/maya-server",
+      "sidecars/opencode-router",
+      "sidecars/maya-orchestrator",
+      "sidecars/chrome-devtools-mcp",
+      "sidecars/versions.json"
+    ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "maya"
+        ]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUwNDdCNTAwMTcxNUUxQTQKUldTazRSVVhBTFZIVUpNRi9OQnNRaElZY1NUWUQxS1ZJOTFUeUdPd2d6ZnFmMW5QV2xJQ1hXTTkK",
+      "endpoints": [
+        "https://github.com/different-ai/maya/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "openwork",
+  "mcp": {
+    "control-chrome": {
+      "command": [
+        "chrome-devtools-mcp"
+      ],
+      "type": "local"
+    }
+  },
+  "model": "nvidia/moonshotai/kimi-k2-instruct-0905",
+  "plugin": [
+    "opencode-scheduler"
+  ]
+}

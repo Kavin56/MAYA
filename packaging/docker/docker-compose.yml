@@ -1,0 +1,40 @@
+services:
+  maya:
+    build:
+      context: ../..
+      dockerfile: packaging/docker/Dockerfile
+    container_name: maya-server
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+      - "3005:3005"
+    environment:
+      - MAYA_TOKEN=${MAYA_TOKEN:-}
+      - MAYA_HOST_TOKEN=${MAYA_HOST_TOKEN:-}
+      - MAYA_APPROVAL_MODE=${MAYA_APPROVAL_MODE:-manual}
+      - MAYA_WORKSPACES=${MAYA_WORKSPACES:-}
+      - MAYA_OPENCODE_BASE_URL=${MAYA_OPENCODE_BASE_URL:-}
+      - MAYA_CORS_ORIGINS=${MAYA_CORS_ORIGINS:-*}
+      - MAYA_READONLY=${MAYA_READONLY:-false}
+      - MAYA_LOG_FORMAT=${MAYA_LOG_FORMAT:-pretty}
+    volumes:
+      - maya-workspace:/workspace
+      - maya-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8787/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - maya-network
+
+volumes:
+  maya-workspace:
+    driver: local
+  maya-data:
+    driver: local
+
+networks:
+  maya-network:
+    driver: bridge

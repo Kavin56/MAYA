@@ -1,0 +1,17 @@
+{
+  "name": "maya-desktop",
+  "private": true,
+  "version": "1.3.4",
+  "opencodeVersion": "1.2.6",
+  "opencodeRouterVersion": "1.3.4",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev --config src-tauri/tauri.dev.conf.json --config \"{\\\"build\\\":{\\\"devUrl\\\":\\\"http://localhost:5173\\\"}}\"",
+    "build": "tauri build",
+    "prepare:sidecar": "node ./scripts/prepare-sidecar.mjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  },
+  "packageManager": "pnpm@10.27.0"
+}
