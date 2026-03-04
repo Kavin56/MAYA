@@ -432,12 +432,10 @@ export default function App() {
     const stored = readOpenworkServerSettings();
     const invite = readOpenworkConnectInviteFromSearch(window.location.search);
 
-    const headlessWeb =
+    const headlessWebUrlPresent =
       typeof import.meta.env?.VITE_OPENWORK_URL === "string" &&
-      import.meta.env.VITE_OPENWORK_URL.trim().length > 0 &&
-      typeof import.meta.env?.VITE_OPENWORK_TOKEN === "string" &&
-      import.meta.env.VITE_OPENWORK_TOKEN.trim().length > 0;
-    if (headlessWeb && untrack(startupPreference) !== "server") {
+      import.meta.env.VITE_OPENWORK_URL.trim().length > 0;
+    if (headlessWebUrlPresent && untrack(startupPreference) !== "server") {
       setStartupPreference("server");
     }
 

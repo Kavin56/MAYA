@@ -63,7 +63,9 @@ export function createOpenworkServerStore(options: {
     const info = hostInfo();
     const settingsUrl = normalizeOpenworkServerUrl(settings().urlOverride ?? "") ?? "";
 
-    if (pref === "local") return info?.baseUrl ?? "";
+    if (pref === "local") {
+      return info?.baseUrl ?? settingsUrl;
+    }
     if (pref === "server") return settingsUrl;
     return info?.baseUrl ?? settingsUrl;
   });
@@ -76,7 +78,10 @@ export function createOpenworkServerStore(options: {
     const hostToken = info?.hostToken?.trim() ?? "";
 
     if (pref === "local") {
-      return { token: clientToken || undefined, hostToken: hostToken || undefined };
+      if (info?.baseUrl) {
+        return { token: clientToken || undefined, hostToken: hostToken || undefined };
+      }
+      return { token: settingsToken || undefined, hostToken: undefined };
     }
     if (pref === "server") {
       return { token: settingsToken || undefined, hostToken: undefined };
