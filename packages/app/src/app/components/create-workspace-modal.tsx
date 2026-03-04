@@ -44,6 +44,21 @@ export default function CreateWorkspaceModal(props: {
   const [selectedFolder, setSelectedFolder] = createSignal<string | null>(null);
   const [pickingFolder, setPickingFolder] = createSignal(false);
 
+  // Auto-detect headless web mode: if VITE_OPENWORK_URL is set and Tauri is not, default to remote path
+  const isHeadlessWeb = () =>
+    Boolean(import.meta.env?.VITE_OPENWORK_URL) && !(window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+
+  const [folderMode, setFolderMode] = createSignal<"local" | "remote">(isHeadlessWeb() ? "remote" : "local");
+  const [remotePath, setRemotePath] = createSignal("/workspace");
+
+  // Sync remotePath into selectedFolder when in remote mode
+  createEffect(() => {
+    if (folderMode() === "remote") {
+      const p = remotePath().trim();
+      setSelectedFolder(p.length > 0 ? p : null);
+    }
+  });
+
   createEffect(() => {
     if (props.open) {
       requestAnimationFrame(() => pickFolderRef?.focus());
@@ -143,23 +158,48 @@ export default function CreateWorkspaceModal(props: {
         </Show>
       </div>
 
-          <div class={`p-6 flex-1 overflow-y-auto space-y-8 transition-opacity duration-300 ${provisioning() ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
-            <div class="space-y-4">
-              <div class="flex items-center gap-3 text-sm font-medium text-gray-12">
-                <div class="w-6 h-6 rounded-full bg-gray-4 flex items-center justify-center text-xs">
-                  1
-                </div>
-                {translate("dashboard.select_folder")}
-              </div>
-              <div class="ml-9">
+      <div class={`p-6 flex-1 overflow-y-auto space-y-8 transition-opacity duration-300 ${provisioning() ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
+        <div class="space-y-4">
+          <div class="flex items-center gap-3 text-sm font-medium text-gray-12">
+            <div class="w-6 h-6 rounded-full bg-gray-4 flex items-center justify-center text-xs">
+              1
+            </div>
+            {translate("dashboard.select_folder")}
+          </div>
+          {/* Local / Remote toggle */}
+          <div class="ml-9 flex gap-2 mb-2">
+            <button
+              type="button"
+              onClick={() => { setFolderMode("local"); setSelectedFolder(null); }}
+              class={`px-3 py-1 rounded-lg text-xs font-medium transition ${folderMode() === "local"
+                  ? "bg-indigo-7/20 text-indigo-11 border border-indigo-7/40"
+                  : "bg-gray-3 text-gray-10 border border-gray-6 hover:bg-gray-4"
+                }`}
+            >
+              Local folder
+            </button>
+            <button
+              type="button"
+              onClick={() => setFolderMode("remote")}
+              class={`px-3 py-1 rounded-lg text-xs font-medium transition ${folderMode() === "remote"
+                  ? "bg-indigo-7/20 text-indigo-11 border border-indigo-7/40"
+                  : "bg-gray-3 text-gray-10 border border-gray-6 hover:bg-gray-4"
+                }`}
+            >
+              Remote path (RunPod)
+            </button>
+          </div>
+          <div class="ml-9">
+            <Show
+              when={folderMode() === "remote"}
+              fallback={
                 <button
                   type="button"
                   ref={pickFolderRef}
                   onClick={handlePickFolder}
                   disabled={pickingFolder() || submitting()}
-                  class={`w-full border border-dashed border-gray-7 bg-gray-2/50 rounded-xl p-4 text-left transition ${
-                    pickingFolder() ? "opacity-70 cursor-wait" : "hover:border-gray-7"
-                  }`.trim()}
+                  class={`w-full border border-dashed border-gray-7 bg-gray-2/50 rounded-xl p-4 text-left transition ${pickingFolder() ? "opacity-70 cursor-wait" : "hover:border-gray-7"
+                    }`.trim()}
                 >
                   <div class="flex items-center gap-3 text-gray-12">
                     <FolderPlus size={20} class="text-gray-11" />
@@ -178,52 +218,69 @@ export default function CreateWorkspaceModal(props: {
                     </Show>
                   </div>
                 </button>
-              </div>
-            </div>
-
-            <div class="space-y-4">
-              <div class="flex items-center gap-3 text-sm font-medium text-gray-12">
-                <div class="w-6 h-6 rounded-full bg-gray-4 flex items-center justify-center text-xs">
-                  2
+              }
+            >
+              <div class="space-y-2">
+                <div class="text-xs text-gray-10">
+                  Enter the folder path on the remote server (e.g. <code class="bg-gray-3 px-1 rounded">/workspace</code> or <code class="bg-gray-3 px-1 rounded">/workspace/my-project</code>)
                 </div>
-                {translate("dashboard.choose_preset")}
+                <input
+                  type="text"
+                  value={remotePath()}
+                  onInput={(e) => setRemotePath(e.currentTarget.value)}
+                  disabled={submitting()}
+                  placeholder="/workspace"
+                  class="w-full bg-gray-2 border border-gray-7 rounded-xl px-4 py-3 text-sm font-mono text-gray-12 placeholder-gray-9 focus:outline-none focus:border-indigo-7 transition"
+                />
+                <Show when={remotePath().trim().length > 0}>
+                  <div class="text-xs text-emerald-11 font-mono">✓ Will use: {remotePath().trim()}</div>
+                </Show>
               </div>
-              <div class={`ml-9 grid gap-3 ${!selectedFolder() ? "opacity-50" : ""}`.trim()}>
-                <For each={options()}>
-                  {(opt) => (
-                    <div
-                      onClick={() => {
-                        if (!selectedFolder()) return;
-                        if (submitting()) return;
-                        setPreset(opt.id);
-                      }}
-                      class={`p-4 rounded-xl border cursor-pointer transition-all ${
-                        preset() === opt.id
-                          ? "bg-indigo-7/10 border-indigo-7/50"
-                          : "bg-gray-2 border-gray-6 hover:border-gray-7"
-                      } ${!selectedFolder() || submitting() ? "pointer-events-none" : ""}`.trim()}
-                    >
-                      <div class="flex justify-between items-start">
-                        <div>
-                          <div
-                            class={`font-medium text-sm ${
-                              preset() === opt.id ? "text-indigo-11" : "text-gray-12"
-                            }`}
-                          >
-                            {opt.name}
-                          </div>
-                          <div class="text-xs text-gray-10 mt-1">{opt.desc}</div>
-                        </div>
-                        <Show when={preset() === opt.id}>
-                          <CheckCircle2 size={16} class="text-indigo-6" />
-                        </Show>
-                      </div>
-                    </div>
-                  )}
-                </For>
-              </div>
-            </div>
+            </Show>
           </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="flex items-center gap-3 text-sm font-medium text-gray-12">
+            <div class="w-6 h-6 rounded-full bg-gray-4 flex items-center justify-center text-xs">
+              2
+            </div>
+            {translate("dashboard.choose_preset")}
+          </div>
+          <div class={`ml-9 grid gap-3 ${!selectedFolder() ? "opacity-50" : ""}`.trim()}>
+            <For each={options()}>
+              {(opt) => (
+                <div
+                  onClick={() => {
+                    if (!selectedFolder()) return;
+                    if (submitting()) return;
+                    setPreset(opt.id);
+                  }}
+                  class={`p-4 rounded-xl border cursor-pointer transition-all ${preset() === opt.id
+                      ? "bg-indigo-7/10 border-indigo-7/50"
+                      : "bg-gray-2 border-gray-6 hover:border-gray-7"
+                    } ${!selectedFolder() || submitting() ? "pointer-events-none" : ""}`.trim()}
+                >
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <div
+                        class={`font-medium text-sm ${preset() === opt.id ? "text-indigo-11" : "text-gray-12"
+                          }`}
+                      >
+                        {opt.name}
+                      </div>
+                      <div class="text-xs text-gray-10 mt-1">{opt.desc}</div>
+                    </div>
+                    <Show when={preset() === opt.id}>
+                      <CheckCircle2 size={16} class="text-indigo-6" />
+                    </Show>
+                  </div>
+                </div>
+              )}
+            </For>
+          </div>
+        </div>
+      </div>
 
       <div class="p-6 border-t border-gray-6 bg-gray-1 flex flex-col gap-3">
         <Show when={submitting() && progress()}>
@@ -266,7 +323,7 @@ export default function CreateWorkspaceModal(props: {
                       if (step.status === "error") return <XCircle size={16} class="text-red-10" />;
                       return <div class="w-4 h-4 rounded-full border-2 border-gray-6" />;
                     };
-                    
+
                     const textClass = () => {
                       if (step.status === "done") return "text-gray-11 font-medium";
                       if (step.status === "active") return "text-gray-12 font-semibold";
