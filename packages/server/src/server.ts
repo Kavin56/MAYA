@@ -298,6 +298,15 @@ export function startServer(config: ServerConfig) {
         return wrapped;
       };
 
+      // Handle CORS preflight requests early so that browsers can call all routes.
+      if (request.method.toUpperCase() === "OPTIONS") {
+        return finalize(
+          new Response(null, {
+            status: 204,
+          }),
+        );
+      }
+
       if (request.method === "OPTIONS") {
         return finalize(new Response(null, { status: 204 }));
       }
