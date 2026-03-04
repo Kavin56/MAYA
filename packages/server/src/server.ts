@@ -1190,7 +1190,7 @@ function createRoutes(config: ServerConfig, approvals: ApprovalService, tokens: 
     return jsonResponse({ items: [serializeWorkspace(workspace)], activeId: workspace.id });
   });
 
-  addRoute(routes, "GET", "/status", "client", async () => {
+  addRoute(routes, "GET", "/status", "none", async () => {
     const active = config.workspaces[0];
     return jsonResponse({
       ok: true,
