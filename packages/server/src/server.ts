@@ -1093,6 +1093,10 @@ function serializeWorkspace(workspace: ServerConfig["workspaces"][number]) {
 function createRoutes(config: ServerConfig, approvals: ApprovalService, tokens: TokenService): Route[] {
   const routes: Route[] = [];
 
+  addRoute(routes, "GET", "/", "none", async () => {
+    return jsonResponse({ ok: true, version: SERVER_VERSION, uptimeMs: Date.now() - config.startedAt });
+  });
+
   addRoute(routes, "GET", "/health", "none", async () => {
     return jsonResponse({ ok: true, version: SERVER_VERSION, uptimeMs: Date.now() - config.startedAt });
   });
