@@ -14,7 +14,7 @@ OpenWork is an experience layer. `opencode` is the engine. This document defines
 * Prefer simple, composable boundaries: JSON over stdout, flags, and env vars.
 * Favor readable logs and predictable exit codes.
 
-3.  Sidecar-composable
+3.  Sidecar-composable:
 
 * Any component must run as a sidecar without special casing.
 * The UI should connect to the same surface area the CLI exposes.
