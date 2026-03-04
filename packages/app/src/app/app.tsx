@@ -148,6 +148,7 @@ import {
   stripOpenworkConnectInviteFromUrl,
   createOpenworkServerClient,
   hydrateOpenworkServerSettingsFromEnv,
+  hydrateOpenworkServerTokenFromRemote,
   normalizeOpenworkServerUrl,
   readOpenworkServerSettings,
   writeOpenworkServerSettings,
@@ -442,6 +443,15 @@ export default function App() {
 
     if (!invite) {
       setOpenworkServerSettings(stored);
+
+      if ((stored.urlOverride ?? "").trim() && !(stored.token ?? "").trim()) {
+        void (async () => {
+          const updated = await hydrateOpenworkServerTokenFromRemote(stored.urlOverride);
+          if (updated) {
+            setOpenworkServerSettings(updated);
+          }
+        })();
+      }
       return;
     }
 

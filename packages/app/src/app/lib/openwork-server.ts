@@ -694,6 +694,53 @@ export function hydrateOpenworkServerSettingsFromEnv() {
   }
 }
 
+export async function hydrateOpenworkServerTokenFromRemote(
+  baseUrlOverride?: string | null,
+): Promise<OpenworkServerSettings | null> {
+  if (typeof window === "undefined") return null;
+
+  const current = readOpenworkServerSettings();
+  const existingToken = current.token?.trim() ?? "";
+  if (existingToken) {
+    return null;
+  }
+
+  const rawBase =
+    typeof baseUrlOverride === "string" && baseUrlOverride.trim().length > 0
+      ? baseUrlOverride.trim()
+      : current.urlOverride ?? "";
+  const normalizedBase = normalizeOpenworkServerUrl(rawBase) ?? "";
+  if (!normalizedBase) return null;
+
+  try {
+    const fetchImpl = resolveFetch();
+    const response = await fetchImpl(`${normalizedBase}/token`, { method: "GET" });
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as { token?: unknown };
+    const token = typeof data?.token === "string" ? data.token.trim() : "";
+    if (!token) return null;
+
+    const merged: OpenworkServerSettings = {
+      ...current,
+      urlOverride: current.urlOverride ?? normalizedBase,
+      token,
+    };
+
+    const next = writeOpenworkServerSettings(merged);
+
+    try {
+      window.localStorage.setItem("maya.server.token", token);
+    } catch {
+      // ignore
+    }
+
+    return next;
+  } catch {
+    return null;
+  }
+}
+
 export function clearOpenworkServerSettings() {
   if (typeof window === "undefined") return;
   try {

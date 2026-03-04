@@ -10,6 +10,7 @@ import { createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import {
   createOpenworkServerClient,
   hydrateOpenworkServerSettingsFromEnv,
+  hydrateOpenworkServerTokenFromRemote,
   normalizeOpenworkServerUrl,
   readOpenworkServerSettings,
   OpenworkServerError,
@@ -101,7 +102,17 @@ export function createOpenworkServerStore(options: {
   createEffect(() => {
     if (typeof window === "undefined") return;
     hydrateOpenworkServerSettingsFromEnv();
-    setSettings(readOpenworkServerSettings());
+    const stored = readOpenworkServerSettings();
+    setSettings(stored);
+
+    if ((stored.urlOverride ?? "").trim() && !(stored.token ?? "").trim()) {
+      void (async () => {
+        const updated = await hydrateOpenworkServerTokenFromRemote(stored.urlOverride);
+        if (updated) {
+          setSettings(updated);
+        }
+      })();
+    }
   });
 
   // Derive URL from preference + host info

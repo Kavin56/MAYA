@@ -1101,6 +1101,20 @@ function createRoutes(config: ServerConfig, approvals: ApprovalService, tokens: 
     return jsonResponse({ ok: true, version: SERVER_VERSION, uptimeMs: Date.now() - config.startedAt });
   });
 
+  addRoute(routes, "GET", "/token", "none", async () => {
+    return jsonResponse({
+      token: config.token,
+      source: config.tokenSource,
+    });
+  });
+
+  addRoute(routes, "GET", "/w/:id/token", "none", async () => {
+    return jsonResponse({
+      token: config.token,
+      source: config.tokenSource,
+    });
+  });
+
   addRoute(routes, "GET", "/ui", "none", async () => {
     if (!resolveToyUiEnabled()) {
       throw new ApiError(404, "ui_disabled", "Toy UI is disabled");
