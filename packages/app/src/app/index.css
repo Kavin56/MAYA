@@ -1,0 +1,401 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+@import "../styles/colors.css";
+
+/* ── Dark theme (OLED / Midnight aesthetic - Default) ─────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+
+  --dls-surface: #000000;
+  --dls-surface-rgb: 0 0 0;
+  --dls-sidebar: rgba(0, 0, 0, 0.85);
+  /* Deep black translucency */
+  --dls-sidebar-solid: #000000;
+
+  --dls-border: rgba(255, 255, 255, 0.12);
+  --dls-border-solid: #1a1a1a;
+
+  --dls-accent: #e5e5ea;
+  --dls-accent-hover: #ffffff;
+  --dls-accent-rgb: 229 229 234;
+
+  --dls-text-primary: #ffffff;
+  --dls-text-secondary: rgba(235, 235, 245, 0.7);
+
+  --dls-hover: rgba(255, 255, 255, 0.08);
+  --dls-active: rgba(255, 255, 255, 0.12);
+
+  /* Glass Variables - Darker */
+  --glass-bg: rgba(10, 10, 10, 0.6);
+  --glass-bg-strong: rgba(5, 5, 5, 0.85);
+  --glass-stroke: rgba(255, 255, 255, 0.12);
+  --glass-stroke-soft: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4);
+  --glass-blur: blur(25px);
+
+  --bg-gradient: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+
+  /* Grays adapted for OLED/Pure Black Mode */
+  --gray-1: #000000;
+  --gray-2: #050505;
+  --gray-3: #111111;
+  --gray-4: #1c1c1e;
+  --gray-5: #2c2c2e;
+  --gray-6: #3a3a3c;
+  --gray-7: #48484a;
+  --gray-8: #636366;
+  --gray-9: #8e8e93;
+  --gray-10: #aeaeb2;
+  --gray-11: #d1d1d6;
+  --gray-12: #ffffff;
+
+  --gray-a1: rgba(255, 255, 255, 0.02);
+  --gray-a2: rgba(255, 255, 255, 0.04);
+  --gray-a3: rgba(255, 255, 255, 0.08);
+  --gray-a4: rgba(255, 255, 255, 0.12);
+  --gray-a5: rgba(255, 255, 255, 0.16);
+  --gray-a6: rgba(255, 255, 255, 0.24);
+  --gray-a7: rgba(255, 255, 255, 0.36);
+  --gray-a8: rgba(255, 255, 255, 0.48);
+  --gray-a9: rgba(255, 255, 255, 0.6);
+  --gray-a10: rgba(255, 255, 255, 0.7);
+  --gray-a11: rgba(255, 255, 255, 0.84);
+  --gray-a12: rgba(255, 255, 255, 0.94);
+}
+
+/* ── Light theme (Mission Control aesthetic) ─────────────────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Core surface */
+  --dls-surface: #fdf8f6;
+  --dls-surface-rgb: 253 248 246;
+  --dls-sidebar: rgba(253, 248, 246, 0.55);
+  --dls-sidebar-solid: #f2e8e5;
+
+  /* Borders */
+  --dls-border: rgba(74, 55, 40, 0.1);
+  --dls-border-solid: #eaddd7;
+
+  /* Accent */
+  --dls-accent: #7FB069;
+  --dls-accent-hover: #7FB069;
+  --dls-accent-rgb: 127 176 105;
+
+  /* Text */
+  --dls-text-primary: #000000;
+  --dls-text-secondary: rgba(0, 0, 0, 0.7);
+
+  /* Interactive */
+  --dls-hover: rgba(74, 55, 40, 0.05);
+  --dls-active: rgba(74, 55, 40, 0.1);
+
+  /* Radius */
+  --dls-radius: 10px;
+  --dls-radius-lg: 18px;
+
+  /* Glass */
+  --glass-bg: rgba(253, 248, 246, 0.55);
+  --glass-bg-strong: rgba(253, 248, 246, 0.8);
+  --glass-stroke: rgba(255, 255, 255, 0.7);
+  --glass-stroke-soft: rgba(74, 55, 40, 0.06);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
+  --glass-blur: blur(20px);
+
+  /* Background gradient */
+  --bg-gradient: radial-gradient(#eaddd7 1px, transparent 1px);
+
+  /* Grays for Light Mode (Mission Control aesthetic) */
+  --gray-1: #ffffff;
+  --gray-2: #fdf8f6;
+  --gray-3: #f2e8e5;
+  --gray-4: #eaddd7;
+  --gray-5: #d4c4bc;
+  --gray-6: #bcaba2;
+  --gray-7: #a08f86;
+  --gray-8: #85746b;
+  --gray-9: #68574d;
+  --gray-10: #4a3728;
+  --gray-11: #382516;
+  --gray-12: #1c0e05;
+
+  --gray-a1: rgba(74, 55, 40, 0.02);
+  --gray-a2: rgba(74, 55, 40, 0.04);
+  --gray-a3: rgba(74, 55, 40, 0.08);
+  --gray-a4: rgba(74, 55, 40, 0.12);
+  --gray-a5: rgba(74, 55, 40, 0.16);
+  --gray-a6: rgba(74, 55, 40, 0.24);
+  --gray-a7: rgba(74, 55, 40, 0.36);
+  --gray-a8: rgba(74, 55, 40, 0.48);
+  --gray-a9: rgba(74, 55, 40, 0.6);
+  --gray-a10: rgba(74, 55, 40, 0.7);
+  --gray-a11: rgba(74, 55, 40, 0.84);
+  --gray-a12: rgba(74, 55, 40, 0.94);
+}
+
+[data-theme="dark"] body,
+:root body {
+  color: var(--dls-text-primary);
+}
+
+[data-theme="dark"] .glass-panel,
+[data-theme="dark"] .glass-panel-strong,
+[data-theme="dark"] .glass-header,
+[data-theme="dark"] .card-glass,
+:root .glass-panel,
+:root .glass-panel-strong,
+:root .glass-header,
+:root .card-glass {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select,
+:root input,
+:root textarea,
+:root select {
+  background-color: rgba(10, 10, 10, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--dls-text-primary);
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background-color: rgba(255, 255, 255, 0.5);
+  border-color: var(--dls-border);
+  color: var(--dls-text-primary);
+}
+
+[data-theme="dark"] button:hover,
+:root button:hover {
+  filter: brightness(1.06);
+}
+
+[data-theme="dark"] ::selection,
+:root ::selection {
+  background: rgba(217, 219, 224, 0.3);
+  color: #ffffff;
+}
+
+/* ── Base styles ─────────────────────────────────────────────────────────────*/
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    'Quicksand',
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background-color: var(--dls-surface);
+  background-image: var(--bg-gradient);
+  background-size: 40px 40px;
+  color: var(--dls-text-primary);
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Glass system ─────────────────────────────────────────────────────────── */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-stroke-soft);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-panel-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-header {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--glass-stroke-soft);
+}
+
+/* ── Sidebar glass override ─────────────────────────────────────────────────*/
+aside.bg-dls-sidebar {
+  background: var(--dls-sidebar) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-right: 1px solid var(--dls-border) !important;
+}
+
+/* ── Global surface background ──────────────────────────────────────────────*/
+.bg-dls-surface {
+  background: var(--bg-gradient) !important;
+  background-attachment: fixed !important;
+}
+
+/* ── Frosted card utility ────────────────────────────────────────────────── */
+.card-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-stroke-soft);
+  border-radius: var(--dls-radius-lg);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-glass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .card-glass:hover,
+:root .card-glass:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Clickable elements ──────────────────────────────────────────────────── */
+button,
+[role="button"],
+a,
+input[type="submit"],
+input[type="button"],
+input[type="checkbox"],
+input[type="radio"],
+select {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+/* ── Animations ─────────────────────────────────────────────────────────── */
+@utility animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+@keyframes soft-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+@utility animate-soft-pulse {
+  animation: soft-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes command-highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6);
+    border-color: rgba(99, 102, 241, 0.8);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    border-color: var(--glass-stroke-soft);
+  }
+}
+
+.command-just-saved {
+  animation: command-highlight 2s ease-out;
+  border-color: rgba(99, 102, 241, 0.8);
+}
+
+@keyframes progress-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@utility animate-progress-shimmer {
+  animation: progress-shimmer 2s infinite linear;
+}
+
+@keyframes soul-nav-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    color: #ef4444;
+    filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0));
+  }
+
+  35% {
+    transform: scale(1.08);
+    color: #f87171;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.45));
+  }
+
+  70% {
+    transform: scale(1.15);
+    color: #ef4444;
+    filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.75));
+  }
+}
+
+.soul-nav-icon-active {
+  color: #ef4444;
+  animation: soul-nav-pulse 1.8s cubic-bezier(0.32, 0, 0.3, 1) infinite;
+  transform-origin: center;
+  will-change: transform, filter;
+}
+
+[data-theme="dark"] .soul-nav-icon-active,
+:root .soul-nav-icon-active {
+  color: #fb7185;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .soul-nav-icon-active {
+    animation: none;
+    filter: none;
+  }
+}
+
+/* ── Theme transition ────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
+}
+
+/* But don't animate everything — only structural elements */
+button,
+input,
+textarea,
+select {
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.1s ease;
+}
