@@ -700,10 +700,7 @@ export async function hydrateOpenworkServerTokenFromRemote(
   if (typeof window === "undefined") return null;
 
   const current = readOpenworkServerSettings();
-  const existingToken = current.token?.trim() ?? "";
-  if (existingToken) {
-    return null;
-  }
+  // We always want to fetch a fresh token if possible, because the backend token might have rotated (e.g. RunPod restart).
 
   const rawBase =
     typeof baseUrlOverride === "string" && baseUrlOverride.trim().length > 0

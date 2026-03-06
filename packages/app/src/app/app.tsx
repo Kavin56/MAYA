@@ -442,10 +442,12 @@ export default function App() {
     if (!invite) {
       setOpenworkServerSettings(stored);
 
-      if ((stored.urlOverride ?? "").trim() && !(stored.token ?? "").trim()) {
+      if ((stored.urlOverride ?? "").trim()) {
         void (async () => {
+          // If we have a token, check if it's still valid by hitting a protected endpoint or just `/token` to compare
+          // Actually, `/token` is public. It just returns the current token. Let's always fetch it and update if it changed!
           const updated = await hydrateOpenworkServerTokenFromRemote(stored.urlOverride);
-          if (updated) {
+          if (updated && updated.token !== stored.token) {
             setOpenworkServerSettings(updated);
           }
         })();
@@ -1396,7 +1398,7 @@ export default function App() {
     if (!trimmed) {
       throw new Error("Session name is required");
     }
-    
+
     await renameSession(sessionID, trimmed);
     await refreshSidebarWorkspaceSessions(workspaceStore.activeWorkspaceId()).catch(() => undefined);
   }
@@ -1980,7 +1982,7 @@ export default function App() {
     openworkServerSettings,
     updateOpenworkServerSettings,
     openworkServerClient,
-    onEngineStable: () => {},
+    onEngineStable: () => { },
     engineRuntime,
     developerMode,
   });
@@ -2376,9 +2378,9 @@ export default function App() {
           const directoryHint = normalizeDirectoryPath(active.directory?.trim() ?? active.path?.trim() ?? "");
           const match = directoryHint
             ? items.find((entry) => {
-                const entryPath = normalizeDirectoryPath((entry.opencode?.directory ?? entry.directory ?? entry.path ?? "").trim());
-                return Boolean(entryPath && entryPath === directoryHint);
-              })
+              const entryPath = normalizeDirectoryPath((entry.opencode?.directory ?? entry.directory ?? entry.path ?? "").trim());
+              return Boolean(entryPath && entryPath === directoryHint);
+            })
             : (response.activeId ? items.find((entry) => entry.id === response.activeId) : null) ?? items[0];
           setOpenworkServerWorkspaceId(match?.id ?? response.activeId ?? null);
         } catch {
@@ -2617,9 +2619,9 @@ export default function App() {
     setRenameWorkspaceId(workspaceId);
     setRenameWorkspaceName(
       workspace.displayName?.trim() ||
-        workspace.openworkWorkspaceName?.trim() ||
-        workspace.name?.trim() ||
-        ""
+      workspace.openworkWorkspaceName?.trim() ||
+      workspace.name?.trim() ||
+      ""
     );
     setRenameWorkspaceOpen(true);
   };
@@ -5552,13 +5554,13 @@ export default function App() {
         onConfirmWorker={
           isTauriRuntime()
             ? async (preset, folder) => {
-                const ok = await workspaceStore.createSandboxFlow(preset, folder, {
-                  onReady: async () => {
-                    await createSessionAndOpen();
-                  },
-                });
-                if (!ok) return;
-              }
+              const ok = await workspaceStore.createSandboxFlow(preset, folder, {
+                onReady: async () => {
+                  await createSessionAndOpen();
+                },
+              });
+              if (!ok) return;
+            }
             : undefined
         }
         workerDisabled={(() => {
