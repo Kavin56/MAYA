@@ -714,7 +714,10 @@ export async function hydrateOpenworkServerTokenFromRemote(
 
   try {
     const fetchImpl = resolveFetch();
-    const response = await fetchImpl(`${normalizedBase}/token`, { method: "GET" });
+    const response = await fetchImpl(`${normalizedBase}/token`, {
+      method: "GET",
+      headers: { "ngrok-skip-browser-warning": "1" }
+    });
     if (!response.ok) return null;
 
     const data = (await response.json()) as { token?: unknown };
