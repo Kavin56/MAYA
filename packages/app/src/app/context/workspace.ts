@@ -1397,7 +1397,53 @@ export function createWorkspaceStore(options: {
 
   async function createWorkspaceFlow(preset: WorkspacePreset, folder: string | null) {
     if (!isTauriRuntime()) {
-      options.setError(t("app.error.tauri_required", currentLocale()));
+      // ── Browser / headless-web fallback ────────────────────────────────
+      // Can't call Tauri IPC to create a persisted workspace, so we create
+      // an in-memory entry and mark it active. The user still needs an
+      // OpenWork server connected (via VITE_OPENWORK_URL or Settings) to
+      // actually run sessions in this workspace.
+      if (!folder) {
+        options.setError(t("app.error.choose_folder", currentLocale()));
+        return;
+      }
+
+      const name = folder.replace(/\\/g, "/").split("/").filter(Boolean).pop() ?? "Worker";
+      const workspaceId = `local-browser:${folder}`;
+
+      setWorkspaces((prev) => {
+        const withoutMatch = prev.filter((w) => w.id !== workspaceId);
+        return [
+          ...withoutMatch,
+          {
+            id: workspaceId,
+            name,
+            path: folder,
+            preset,
+            workspaceType: "local" as const,
+            remoteType: null,
+            baseUrl: null,
+            directory: null,
+            displayName: null,
+            openworkHostUrl: null,
+            openworkToken: null,
+            openworkWorkspaceId: null,
+            openworkWorkspaceName: null,
+            sandboxBackend: null,
+            sandboxRunId: null,
+            sandboxContainerName: null,
+          },
+        ];
+      });
+
+      syncActiveWorkspaceId(workspaceId);
+      setProjectDir(folder);
+      setAuthorizedDirs([folder]);
+      updateWorkspaceConnectionState(workspaceId, { status: "connected", message: null });
+
+      setCreateWorkspaceOpen(false);
+      options.setTab("scheduled");
+      options.setView("dashboard");
+      markOnboardingComplete();
       return;
     }
 
