@@ -794,7 +794,10 @@ function buildHeaders(
   hostToken?: string,
   extra?: Record<string, string>,
 ) {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "1"
+  };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -808,7 +811,9 @@ function buildHeaders(
 }
 
 function buildAuthHeaders(token?: string, hostToken?: string, extra?: Record<string, string>) {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    "ngrok-skip-browser-warning": "1"
+  };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -930,7 +935,7 @@ async function requestMultipartRaw(
   baseUrl: string,
   path: string,
   options: { method?: string; token?: string; hostToken?: string; body?: FormData; timeoutMs?: number } = {},
-): Promise<{ ok: boolean; status: number; text: string }>{
+): Promise<{ ok: boolean; status: number; text: string }> {
   const url = `${baseUrl}${path}`;
   const fetchImpl = resolveFetch();
   const response = await fetchWithTimeout(
@@ -951,7 +956,7 @@ async function requestBinary(
   baseUrl: string,
   path: string,
   options: { method?: string; token?: string; hostToken?: string; timeoutMs?: number } = {},
-): Promise<{ data: ArrayBuffer; contentType: string | null; filename: string | null }>{
+): Promise<{ data: ArrayBuffer; contentType: string | null; filename: string | null }> {
   const url = `${baseUrl}${path}`;
   const fetchImpl = resolveFetch();
   const response = await fetchWithTimeout(

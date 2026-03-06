@@ -110,7 +110,10 @@ export function ServerProvider(props: ParentProps & { defaultUrl: string }) {
   const checkHealth = async (url: string) => {
     if (!url) return false;
     const token = readOpenworkToken();
-    const headers = token && url.includes("/opencode") ? { Authorization: `Bearer ${token}` } : undefined;
+    const headers: Record<string, string> = { "ngrok-skip-browser-warning": "1" };
+    if (token && url.includes("/opencode")) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
     const client = createOpencodeClient({
       baseUrl: url,
       headers,

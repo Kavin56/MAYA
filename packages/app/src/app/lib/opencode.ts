@@ -120,7 +120,9 @@ export function unwrap<T>(result: FieldsResult<T>): NonNullable<T> {
 }
 
 export function createClient(baseUrl: string, directory?: string, auth?: OpencodeAuth) {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    "ngrok-skip-browser-warning": "1",
+  };
   if (!isTauriRuntime()) {
     const authHeader = resolveAuthHeader(auth);
     if (authHeader) {
@@ -131,7 +133,7 @@ export function createClient(baseUrl: string, directory?: string, auth?: Opencod
   const fetchImpl = isTauriRuntime()
     ? createTauriFetch(auth)
     : (input: RequestInfo | URL, init?: RequestInit) =>
-        fetchWithTimeout(globalThis.fetch, input, init, DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS);
+      fetchWithTimeout(globalThis.fetch, input, init, DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS);
   return createOpencodeClient({
     baseUrl,
     directory,

@@ -28,6 +28,7 @@ export function GlobalSDKProvider(props: ParentProps) {
   const [client, setClient] = createSignal(
     createOpencodeClient({
       baseUrl: server.url,
+      headers: { "ngrok-skip-browser-warning": "1" },
       fetch: platform.fetch,
       throwOnError: true,
     }),
@@ -46,7 +47,10 @@ export function GlobalSDKProvider(props: ParentProps) {
         return "";
       }
     })();
-    const headers = token && baseUrl.includes("/opencode") ? { Authorization: `Bearer ${token}` } : undefined;
+    const headers: Record<string, string> = { "ngrok-skip-browser-warning": "1" };
+    if (token && baseUrl.includes("/opencode")) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
     setUrl(baseUrl);
 
     // Always keep the request client in sync with the active URL.
