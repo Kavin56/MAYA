@@ -1,82 +1,72 @@
 # MAYA — Start Guide
 
-## 🌐 Frontend (Vercel — already live)
+## Local Dev (Browser UI + local backend)
 
-**URL:** https://maya-du1npxgvh-kavinkumar-vss-projects.vercel.app
+```powershell
+cd D:\MAYA
 
-No action needed. Auto-deploys from GitHub on every `git push`.
+# Clear any inherited ngrok env vars, then start everything
+$env:VITE_OPENWORK_URL = ''; $env:VITE_OPENWORK_TOKEN = ''
+pnpm dev:headless-web
+```
+
+Open: **http://localhost:5173**
+
+- OpenCode + MAYA auto-connect via local orchestrator (port 4500)
+- Full chat, sessions, scheduled jobs work
+- No RunPod or ngrok needed
+
+> **Note:** `packages/app/.env.local` points to `http://127.0.0.1:4500` (fixed port).
 
 ---
 
-## 🖥️ Backend (RunPod)
+## Desktop App (Tauri)
 
-### First Time Setup
-
-SSH into your RunPod pod and run this **once**:
-
-```bash
-# 1. System packages + Node.js
-apt-get update -qq && apt-get install -y curl wget git unzip
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt-get install -y nodejs
-
-# 2. opencode AI engine
-curl -fsSL https://opencode.ai/install | bash
-source ~/.bashrc
-
-# 3. Clone the repo
-git clone https://github.com/Kavin56/MAYA.git /workspace/MAYA
-cd /workspace/MAYA
-
-# 4. Run the startup script
-chmod +x runpod-start.sh
-./runpod-start.sh
+```powershell
+cd D:\MAYA
+pnpm dev
 ```
 
-### Every Time You Restart the Pod
-
-```bash
-cd /workspace/MAYA
-./runpod-start.sh
-```
-
-### What the Startup Script Does
-1. Installs **Bun** (server runtime)
-2. Installs **ngrok** + authenticates
-3. Installs **pnpm** + project dependencies
-4. Starts `opencode` on port `4096`
-5. Starts `maya-server` (OpenWork) on port `8787`
-6. Opens ngrok tunnel → `https://nondetonating-cecile-nongrounded.ngrok-free.dev`
+Opens the native desktop app with OpenCode embedded.
 
 ---
 
-## 🔗 Connecting Frontend to Backend
+## RunPod Production (Netlify/Vercel → ngrok → RunPod)
 
-1. Start the backend on RunPod (see above)
-2. At the end of startup, it prints a **client token** — copy it
-3. Open the Vercel frontend URL
-4. In the **"Connect to Server"** dialog enter:
-   - **URL:** `https://nondetonating-cecile-nongrounded.ngrok-free.dev`
-   - **Token:** *(printed by runpod-start.sh)*
-
-### Verify Backend is Running
+### 1. Start backend on RunPod
 ```bash
-curl https://nondetonating-cecile-nongrounded.ngrok-free.dev/health
-# Expected: {"ok":true,"version":"...","uptimeMs":...}
+# In RunPod terminal
+bash runpod-start.sh
+# Copy the ngrok URL printed at the end
 ```
+
+### 2. Set env vars on Netlify/Vercel dashboard
+```
+VITE_OPENWORK_URL=https://your-ngrok-url.ngrok-free.app
+```
+
+### 3. Redeploy frontend (or env vars take effect on next deploy)
 
 ---
 
-## 📋 Logs (on RunPod)
+## OWL Multi-Agent (Google Gemini)
 
-| Service | Log File |
+```powershell
+cd D:\MAYA
+python src/maya_workforce.py
+```
+
+- Requires `GOOGLE_API_KEY` in `.env`
+- Uses Gemini Flash — 3 agents: Researcher, Strategist, Analyst
+- No GPU needed, runs locally
+
+---
+
+## Key Files
+
+| File | Purpose |
 |---|---|
-| opencode | `/tmp/opencode.log` |
-| maya-server | `/tmp/maya-server.log` |
-| ngrok | `/tmp/ngrok.log` |
-
-```bash
-# View logs live
-tail -f /tmp/maya-server.log
-tail -f /tmp/ngrok.log
-```
+| `packages/app/.env.local` | Local dev — points to `http://127.0.0.1:4500` |
+| `.env` | Root env — `OPENWORK_PORT=4500`, `GOOGLE_API_KEY` |
+| `runpod-start.sh` | RunPod setup + ngrok tunnel |
+| `src/maya_workforce.py` | OWL multi-agent system |
