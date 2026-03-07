@@ -405,7 +405,7 @@ export function startServer(config: ServerConfig) {
 
       if (url.pathname === "/opencode" || url.pathname.startsWith("/opencode/")) {
         authMode = "client";
-        proxyBaseUrl = config.workspaces[0]?.baseUrl?.trim() || undefined;
+        proxyBaseUrl = config.workspaces[0]?.opencode?.baseUrl?.trim() || config.workspaces[0]?.baseUrl?.trim() || undefined;
         try {
           const actor = await requireClient(request, config, tokens);
           assertOpencodeProxyAllowed(actor, request.method, url.pathname);
