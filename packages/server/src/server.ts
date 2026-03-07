@@ -403,14 +403,20 @@ export function startServer(config: ServerConfig) {
         url.pathname = mount.restPath;
       }
 
-      if (url.pathname === "/opencode" || url.pathname.startsWith("/opencode/")) {
+      const opencodeRouteMatch = (mount && (mount.restPath === "/opencode" || mount.restPath.startsWith("/opencode/")))
+        ? mount.restPath
+        : (url.pathname === "/opencode" || url.pathname.startsWith("/opencode/"))
+          ? url.pathname
+          : null;
+
+      if (opencodeRouteMatch) {
         authMode = "client";
         proxyBaseUrl = config.workspaces[0]?.opencode?.baseUrl?.trim() || config.workspaces[0]?.baseUrl?.trim() || undefined;
         try {
           const actor = await requireClient(request, config, tokens);
-          assertOpencodeProxyAllowed(actor, request.method, url.pathname);
+          assertOpencodeProxyAllowed(actor, request.method, opencodeRouteMatch);
           proxyService = "opencode";
-          const response = await proxyOpencodeRequest({ request, url, workspace: config.workspaces[0] });
+          const response = await proxyOpencodeRequest({ request, url, workspace: config.workspaces[0], proxyPath: opencodeRouteMatch });
           return finalize(response);
         } catch (error) {
           const apiError = error instanceof ApiError
