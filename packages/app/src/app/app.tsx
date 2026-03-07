@@ -1999,7 +1999,9 @@ export default function App() {
     if (mode === "cloud") {
       const staticCloudUrl = "https://nondetonating-cecile-nongrounded.ngrok-free.dev";
 
-      fetch(`${staticCloudUrl}/token`)
+      fetch(`${staticCloudUrl}/token`, {
+        headers: { "ngrok-skip-browser-warning": "1" }
+      })
         .then(res => {
           if (!res.ok) throw new Error("Failed to fetch token");
           return res.json();
@@ -2017,6 +2019,7 @@ export default function App() {
         .catch(err => console.error("[MAYA] Failed to auto-connect to remote cloud worker:", err));
     } else {
       updateOpenworkServerSettings({ urlOverride: "", token: "" });
+      setStartupPreference("local");
 
       const current = workspaceStore.activeWorkspaceDisplay();
       if (current && current.workspaceType === "remote") {
