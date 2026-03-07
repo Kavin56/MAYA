@@ -739,29 +739,7 @@ export default function App() {
   const [owlExecutionMode, setOwlExecutionMode] = createSignal<"local" | "cloud">(
     (localStorage.getItem("maya.owlExecutionMode") as "local" | "cloud") || "local"
   );
-  createEffect(() => {
-    const mode = owlExecutionMode();
-    localStorage.setItem("maya.owlExecutionMode", mode);
 
-    if (mode === "cloud") {
-      const staticCloudUrl = "https://nondetonating-cecile-nongrounded.ngrok-free.dev";
-
-      fetch(`${staticCloudUrl}/token`)
-        .then(res => {
-          if (!res.ok) throw new Error("Failed to fetch token");
-          return res.json();
-        })
-        .then(data => {
-          if (data && data.token) {
-            updateOpenworkServerSettings({ urlOverride: staticCloudUrl, token: data.token });
-          }
-        })
-        .catch(err => console.error("[MAYA] Failed to auto-connect to remote cloud worker:", err));
-    } else {
-      // Revert to local standard when switching back to Local Worker
-      updateOpenworkServerSettings({ urlOverride: "", token: "" });
-    }
-  });
 
   createEffect(() => {
     if (developerMode()) return;
@@ -2012,6 +1990,42 @@ export default function App() {
     onEngineStable: () => { },
     engineRuntime,
     developerMode,
+  });
+
+  createEffect(() => {
+    const mode = owlExecutionMode();
+    localStorage.setItem("maya.owlExecutionMode", mode);
+
+    if (mode === "cloud") {
+      const staticCloudUrl = "https://nondetonating-cecile-nongrounded.ngrok-free.dev";
+
+      fetch(`${staticCloudUrl}/token`)
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to fetch token");
+          return res.json();
+        })
+        .then(data => {
+          if (data && data.token) {
+            updateOpenworkServerSettings({ urlOverride: staticCloudUrl, token: data.token });
+            workspaceStore.createRemoteWorkspaceFlow({
+              openworkHostUrl: staticCloudUrl,
+              openworkToken: data.token,
+              displayName: "Cloud Worker",
+            }).catch(console.error);
+          }
+        })
+        .catch(err => console.error("[MAYA] Failed to auto-connect to remote cloud worker:", err));
+    } else {
+      updateOpenworkServerSettings({ urlOverride: "", token: "" });
+
+      const current = workspaceStore.activeWorkspaceDisplay();
+      if (current && current.workspaceType === "remote") {
+        const localWs = workspaceStore.workspaces().find(w => w.workspaceType === "local");
+        if (localWs) {
+          workspaceStore.syncActiveWorkspaceId(localWs.id);
+        }
+      }
+    }
   });
 
   type SidebarWorkspaceSessionsStatus = WorkspaceSessionGroup["status"];
