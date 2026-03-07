@@ -737,7 +737,7 @@ export default function App() {
   const [documentVisible, setDocumentVisible] = createSignal(true);
 
   const [owlExecutionMode, setOwlExecutionMode] = createSignal<"local" | "cloud">(
-    (localStorage.getItem("maya.owlExecutionMode") as "local" | "cloud") || "local"
+    (localStorage.getItem("maya.owlExecutionMode") as "local" | "cloud") || "cloud"
   );
 
 
