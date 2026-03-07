@@ -144,8 +144,10 @@ if [ ! -d "venv" ]; then
     python3 -m venv venv
 fi
 source venv/bin/activate
-pip install -r requirements.txt > /dev/null 2>&1
-playwright install chromium > /dev/null 2>&1
+echo "  Installing Python dependencies (this may take a minute)..."
+pip install -r requirements.txt > /tmp/owl-install.log 2>&1
+echo "  Installing Playwright browsers..."
+playwright install chromium >> /tmp/owl-install.log 2>&1 || true
 nohup uvicorn main:app --host 0.0.0.0 --port 5000 > /tmp/owl-worker.log 2>&1 &
 OWL_PID=$!
 echo "  OWL Worker PID: $OWL_PID"
