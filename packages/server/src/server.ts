@@ -448,6 +448,10 @@ export function startServer(config: ServerConfig) {
         }
       }
 
+      if (url.pathname === "/token") {
+        return finalize(jsonResponse({ token: config.token, source: "env" }));
+      }
+
       if (url.pathname === "/opencode-router" || url.pathname.startsWith("/opencode-router/")) {
         const policy = resolveOpenCodeRouterProxyPolicy(request.method, url.pathname);
         authMode = policy.auth;
