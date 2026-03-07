@@ -628,7 +628,7 @@ async function proxyOpencodeRequest(input: {
   proxyPath?: string;
 }) {
   const workspace = input.workspace;
-  const baseUrl = workspace?.baseUrl?.trim() ?? "";
+  const baseUrl = workspace?.opencode?.baseUrl?.trim() ?? workspace?.baseUrl?.trim() ?? "";
   if (!baseUrl) {
     throw new ApiError(400, "opencode_unconfigured", "OpenCode base URL is missing for this workspace");
   }
