@@ -741,11 +741,6 @@ export default function App() {
   );
   createEffect(() => localStorage.setItem("maya.owlExecutionMode", owlExecutionMode()));
 
-  const [owlRemoteUrl, setOwlRemoteUrl] = createSignal(
-    localStorage.getItem("maya.owlRemoteUrl") || ""
-  );
-  createEffect(() => localStorage.setItem("maya.owlRemoteUrl", owlRemoteUrl()));
-
   createEffect(() => {
     if (developerMode()) return;
     clearPerfLogs();
@@ -5159,8 +5154,6 @@ export default function App() {
       developerMode: developerMode(),
       owlExecutionMode: owlExecutionMode(),
       setOwlExecutionMode,
-      owlRemoteUrl: owlRemoteUrl(),
-      setOwlRemoteUrl,
       stopHost,
       openResetModal,
       resetModalBusy: resetModalBusy(),

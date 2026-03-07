@@ -294,8 +294,6 @@ export type DashboardViewProps = {
   connectNotion: () => void;
   owlExecutionMode: "local" | "cloud";
   setOwlExecutionMode: (mode: "local" | "cloud") => void;
-  owlRemoteUrl: string;
-  setOwlRemoteUrl: (url: string) => void;
 };
 
 export default function DashboardView(props: DashboardViewProps) {
@@ -1555,8 +1553,6 @@ export default function DashboardView(props: DashboardViewProps) {
                   connectNotion={props.connectNotion}
                   owlExecutionMode={props.owlExecutionMode}
                   setOwlExecutionMode={props.setOwlExecutionMode}
-                  owlRemoteUrl={props.owlRemoteUrl}
-                  setOwlRemoteUrl={props.setOwlRemoteUrl}
                 />
               </Match>
 

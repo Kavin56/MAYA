@@ -903,17 +903,8 @@ export default function SettingsView(props: SettingsViewProps) {
 
                 <Show when={props.owlExecutionMode === "cloud"}>
                   <div class="space-y-2">
-                    <div class="text-xs text-gray-10">Remote Worker URL</div>
-                    <input
-                      type="text"
-                      class="w-full flex-1 text-[11px] text-gray-12 font-mono bg-gray-1/50 placeholder:text-gray-7/80 px-3 py-2 border border-gray-6/60 focus:border-gray-8/60 focus:outline-none rounded-xl"
-                      placeholder="e.g. https://nondetonating-cecile.ngrok-free.dev"
-                      value={props.owlRemoteUrl}
-                      onInput={(e) => props.setOwlRemoteUrl(e.currentTarget.value)}
-                      disabled={props.busy}
-                    />
                     <div class="text-[11px] text-gray-8">
-                      The public ngrok URL pointing to your Python RunPod VPS executing the OWL agent framework.
+                      Because you are using the Cloud Worker mode, all OWL multi-agent execution requests are seamlessly proxied to the central remote python worker associated with your desktop instances single public OpenWork URL.
                     </div>
                   </div>
                 </Show>
