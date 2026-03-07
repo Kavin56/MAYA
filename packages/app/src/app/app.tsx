@@ -10,6 +10,7 @@ import {
 } from "solid-js";
 
 import { useLocation, useNavigate } from "@solidjs/router";
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 
 import type {
   Agent,
@@ -1998,10 +1999,13 @@ export default function App() {
 
     if (mode === "cloud") {
       const staticCloudUrl = "https://nondetonating-cecile-nongrounded.ngrok-free.dev";
+      const tokenUrl = `${staticCloudUrl}/token`;
 
-      fetch(`${staticCloudUrl}/token`, {
-        headers: { "ngrok-skip-browser-warning": "1" }
-      })
+      const doFetch = isTauriRuntime()
+        ? tauriFetch(tokenUrl, { method: "GET", headers: { "ngrok-skip-browser-warning": "1" } })
+        : fetch(tokenUrl, { headers: { "ngrok-skip-browser-warning": "1" } });
+
+      doFetch
         .then(res => {
           if (!res.ok) throw new Error("Failed to fetch token");
           return res.json();
