@@ -17,7 +17,7 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt-get install -y nodejs
 
 # ── 3. opencode (AI engine) ────────────────────────────────
-curl -fsSL https://opencode.ai/install | sh
+curl -fsSL https://opencode.ai/install | bash
 source ~/.bashrc
 
 # ── 4. Clone your repo ─────────────────────────────────────
