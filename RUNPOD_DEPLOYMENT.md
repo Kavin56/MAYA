@@ -25,8 +25,11 @@ git clone https://github.com/Kavin56/MAYA.git /workspace/MAYA
 cd /workspace/MAYA
 
 # ── 5. Run the unified startup script inside tmux ──────────
+tmux new -s dev
+
+# (Once inside the tmux session "dev", run the script)
 chmod +x runpod-start.sh
-tmux new-session -d -s maya_stack "./runpod-start.sh"
+./runpod-start.sh
 ```
 
 ## 🔍 Monitoring the Services
@@ -35,7 +38,7 @@ Because we used `tmux`, the services are running safely in the background. Even 
 
 **To view the real-time logs and the ngrok URL:**
 ```bash
-tmux attach-session -t maya_stack
+tmux attach-session -t dev
 ```
 *(To detach and leave it running in the background again, press `Ctrl+B`, then press `D`)*
 
