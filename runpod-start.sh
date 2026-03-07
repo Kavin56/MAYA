@@ -137,6 +137,20 @@ else
   cat /tmp/maya-server.log
 fi
 
+# ─── Start OWL Python Worker on port 5000 ───────────────────────────────
+echo "▶ Starting OWL remote worker on port 5000..."
+cd /workspace/MAYA/src/owl-backend
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+fi
+source venv/bin/activate
+pip install -r requirements.txt > /dev/null 2>&1
+playwright install chromium > /dev/null 2>&1
+nohup uvicorn main:app --host 0.0.0.0 --port 5000 > /tmp/owl-worker.log 2>&1 &
+OWL_PID=$!
+echo "  OWL Worker PID: $OWL_PID"
+cd /workspace/MAYA
+
 # ─── Start ngrok tunnel ───────────────────────────────────────────────────────
 echo "▶ Starting ngrok tunnel → port $SERVER_PORT..."
 ngrok http \

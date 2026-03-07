@@ -736,6 +736,16 @@ export default function App() {
   const [showBuildMode, setShowBuildMode] = createSignal(false);
   const [documentVisible, setDocumentVisible] = createSignal(true);
 
+  const [owlExecutionMode, setOwlExecutionMode] = createSignal<"local" | "cloud">(
+    (localStorage.getItem("maya.owlExecutionMode") as "local" | "cloud") || "local"
+  );
+  createEffect(() => localStorage.setItem("maya.owlExecutionMode", owlExecutionMode()));
+
+  const [owlRemoteUrl, setOwlRemoteUrl] = createSignal(
+    localStorage.getItem("maya.owlRemoteUrl") || ""
+  );
+  createEffect(() => localStorage.setItem("maya.owlRemoteUrl", owlRemoteUrl()));
+
   createEffect(() => {
     if (developerMode()) return;
     clearPerfLogs();
@@ -5147,6 +5157,10 @@ export default function App() {
       isWindows: isWindowsPlatform(),
       toggleDeveloperMode: () => setDeveloperMode((v) => !v),
       developerMode: developerMode(),
+      owlExecutionMode: owlExecutionMode(),
+      setOwlExecutionMode,
+      owlRemoteUrl: owlRemoteUrl(),
+      setOwlRemoteUrl,
       stopHost,
       openResetModal,
       resetModalBusy: resetModalBusy(),

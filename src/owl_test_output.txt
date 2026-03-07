@@ -1,0 +1,48 @@
+﻿python : 2026-03-06 
+01:32:55,606 [INFO] 
+\u2705 MAYA OWL 
+Workforce ready (3 
+Gemini agents)
+At line:1 char:13
++ cd D:\MAYA; python 
+src/maya_workforce.py 
+2>&1 | Out-File 
+-FilePath D: ...
++             ~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (2026-03-06 01   
+ :3... Gemini agent    
+s):String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+============================================================
+  MAYA OWL Workforce ù Google Gemini Edition
+============================================================
+Traceback (most recent 
+call last):
+  File "D:\MAYA\src\may
+a_workforce.py", line 
+200, in <module>
+    
+print(f"\n\U0001f4cb 
+Task:\n  {task}\n")
+  File "C:\Users\vskav\
+AppData\Local\Programs\
+Python\Python310\lib\en
+codings\cp1252.py", 
+line 19, in encode
+    return codecs.charm
+ap_encode(input,self.er
+rors,encoding_table)[0]
+UnicodeEncodeError: 
+'charmap' codec can't 
+encode character 
+'\U0001f4cb' in 
+position 2: character 
+maps to <undefined>

@@ -120,6 +120,10 @@ export type SettingsViewProps = {
   notionBusy: boolean;
   connectNotion: () => void;
   engineDoctorVersion: string | null;
+  owlExecutionMode: "local" | "cloud";
+  setOwlExecutionMode: (mode: "local" | "cloud") => void;
+  owlRemoteUrl: string;
+  setOwlRemoteUrl: (url: string) => void;
 };
 
 // OpenCodeRouter Settings Component
@@ -662,8 +666,8 @@ export default function SettingsView(props: SettingsViewProps) {
             {(tab) => (
               <button
                 class={`px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${activeTab() === tab
-                    ? "bg-gray-12/10 text-gray-12 border-gray-6/30"
-                    : "text-gray-10 border-gray-6/50 hover:text-gray-12 hover:bg-gray-2/40"
+                  ? "bg-gray-12/10 text-gray-12 border-gray-6/30"
+                  : "text-gray-10 border-gray-6/50 hover:text-gray-12 hover:bg-gray-2/40"
                   }`}
                 onClick={() => props.setSettingsTab(tab)}
               >
@@ -856,8 +860,8 @@ export default function SettingsView(props: SettingsViewProps) {
                 <button
                   type="button"
                   class={`${compactOutlineActionClass} ${props.developerMode
-                      ? "border-blue-7/35 bg-blue-3/20 text-blue-11 hover:bg-blue-3/35 hover:text-blue-11"
-                      : ""
+                    ? "border-blue-7/35 bg-blue-3/20 text-blue-11 hover:bg-blue-3/35 hover:text-blue-11"
+                    : ""
                     }`}
                   onClick={props.toggleDeveloperMode}
                 >
@@ -867,6 +871,52 @@ export default function SettingsView(props: SettingsViewProps) {
                 <div class="text-xs text-gray-10">
                   {props.developerMode ? "Developer panel enabled." : "Enable this to access the Developer panel."}
                 </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-2/30 border border-gray-7/60 rounded-2xl p-5 space-y-4">
+              <div>
+                <div class="text-sm font-medium text-gray-12">OWL Remote Worker</div>
+                <div class="text-xs text-gray-9">Configure how the OWL multi-agent framework executes tasks.</div>
+              </div>
+
+              <div class="flex flex-col gap-3">
+                <div class="space-y-2">
+                  <div class="text-xs text-gray-10">Execution Mode</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <Button
+                      variant={props.owlExecutionMode === "local" ? "secondary" : "outline"}
+                      onClick={() => props.setOwlExecutionMode("local")}
+                      disabled={props.busy}
+                    >
+                      Local Worker
+                    </Button>
+                    <Button
+                      variant={props.owlExecutionMode === "cloud" ? "secondary" : "outline"}
+                      onClick={() => props.setOwlExecutionMode("cloud")}
+                      disabled={props.busy}
+                    >
+                      Cloud Worker
+                    </Button>
+                  </div>
+                </div>
+
+                <Show when={props.owlExecutionMode === "cloud"}>
+                  <div class="space-y-2">
+                    <div class="text-xs text-gray-10">Remote Worker URL</div>
+                    <input
+                      type="text"
+                      class="w-full flex-1 text-[11px] text-gray-12 font-mono bg-gray-1/50 placeholder:text-gray-7/80 px-3 py-2 border border-gray-6/60 focus:border-gray-8/60 focus:outline-none rounded-xl"
+                      placeholder="e.g. https://nondetonating-cecile.ngrok-free.dev"
+                      value={props.owlRemoteUrl}
+                      onInput={(e) => props.setOwlRemoteUrl(e.currentTarget.value)}
+                      disabled={props.busy}
+                    />
+                    <div class="text-[11px] text-gray-8">
+                      The public ngrok URL pointing to your Python RunPod VPS executing the OWL agent framework.
+                    </div>
+                  </div>
+                </Show>
               </div>
             </div>
 
@@ -942,8 +992,8 @@ export default function SettingsView(props: SettingsViewProps) {
                 {(result) => (
                   <div
                     class={`rounded-xl border px-3 py-2 text-xs ${result().ok
-                        ? "border-green-7/30 bg-green-2/30 text-green-12"
-                        : "border-red-7/30 bg-red-2/30 text-red-12"
+                      ? "border-green-7/30 bg-green-2/30 text-green-12"
+                      : "border-red-7/30 bg-red-2/30 text-red-12"
                       }`}
                   >
                     {result().message}
@@ -975,8 +1025,8 @@ export default function SettingsView(props: SettingsViewProps) {
                           </div>
                           <button
                             class={`min-w-[70px] px-4 py-1.5 rounded-full text-xs font-medium border shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition-colors ${props.updateAutoCheck
-                                ? "bg-gray-12/12 text-gray-12 border-gray-6/30"
-                                : "bg-gray-1/70 text-gray-10 border-gray-6/60 hover:text-gray-12 hover:bg-gray-2/70"
+                              ? "bg-gray-12/12 text-gray-12 border-gray-6/30"
+                              : "bg-gray-1/70 text-gray-10 border-gray-6/60 hover:text-gray-12 hover:bg-gray-2/70"
                               }`}
                             onClick={props.toggleUpdateAutoCheck}
                           >
@@ -991,8 +1041,8 @@ export default function SettingsView(props: SettingsViewProps) {
                           </div>
                           <button
                             class={`min-w-[70px] px-4 py-1.5 rounded-full text-xs font-medium border shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] transition-colors ${props.updateAutoDownload
-                                ? "bg-gray-12/12 text-gray-12 border-gray-6/30"
-                                : "bg-gray-1/70 text-gray-10 border-gray-6/60 hover:text-gray-12 hover:bg-gray-2/70"
+                              ? "bg-gray-12/12 text-gray-12 border-gray-6/30"
+                              : "bg-gray-1/70 text-gray-10 border-gray-6/60 hover:text-gray-12 hover:bg-gray-2/70"
                               }`}
                             onClick={props.toggleUpdateAutoDownload}
                           >

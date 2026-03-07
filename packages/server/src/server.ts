@@ -331,6 +331,33 @@ export function startServer(config: ServerConfig) {
         }
       }
 
+      if (mount && (mount.restPath === "/worker" || mount.restPath.startsWith("/worker/"))) {
+        authMode = "client";
+        try {
+          const actor = await requireClient(request, config, tokens);
+          const proxyPath = mount.restPath.slice("/worker".length) || "/";
+          const targetUrl = new URL(proxyPath, "http://127.0.0.1:5000");
+          targetUrl.search = url.search;
+
+          const proxyReq = new Request(targetUrl.href, {
+            method: request.method,
+            headers: request.headers,
+            body: request.body,
+            // @ts-ignore
+            duplex: "half",
+          });
+
+          const response = await fetch(proxyReq);
+          return finalize(response);
+        } catch (error) {
+          const apiError = error instanceof ApiError
+            ? error
+            : new ApiError(500, "internal_error", "Unexpected server error");
+          errorMessage = apiError.message;
+          return finalize(jsonResponse(formatError(apiError), apiError.status));
+        }
+      }
+
       if (mount && (mount.restPath === "/opencode-router" || mount.restPath.startsWith("/opencode-router/"))) {
         const policy = resolveOpenCodeRouterProxyPolicy(request.method, mount.restPath);
         authMode = policy.auth;
@@ -384,6 +411,33 @@ export function startServer(config: ServerConfig) {
           assertOpencodeProxyAllowed(actor, request.method, url.pathname);
           proxyService = "opencode";
           const response = await proxyOpencodeRequest({ request, url, workspace: config.workspaces[0] });
+          return finalize(response);
+        } catch (error) {
+          const apiError = error instanceof ApiError
+            ? error
+            : new ApiError(500, "internal_error", "Unexpected server error");
+          errorMessage = apiError.message;
+          return finalize(jsonResponse(formatError(apiError), apiError.status));
+        }
+      }
+
+      if (url.pathname === "/worker" || url.pathname.startsWith("/worker/")) {
+        authMode = "client";
+        try {
+          const actor = await requireClient(request, config, tokens);
+          const proxyPath = url.pathname.slice("/worker".length) || "/";
+          const targetUrl = new URL(proxyPath, "http://127.0.0.1:5000");
+          targetUrl.search = url.search;
+
+          const proxyReq = new Request(targetUrl.href, {
+            method: request.method,
+            headers: request.headers,
+            body: request.body,
+            // @ts-ignore
+            duplex: "half",
+          });
+
+          const response = await fetch(proxyReq);
           return finalize(response);
         } catch (error) {
           const apiError = error instanceof ApiError

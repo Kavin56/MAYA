@@ -292,6 +292,10 @@ export type DashboardViewProps = {
   notionError: string | null;
   notionBusy: boolean;
   connectNotion: () => void;
+  owlExecutionMode: "local" | "cloud";
+  setOwlExecutionMode: (mode: "local" | "cloud") => void;
+  owlRemoteUrl: string;
+  setOwlRemoteUrl: (url: string) => void;
 };
 
 export default function DashboardView(props: DashboardViewProps) {
@@ -1549,6 +1553,10 @@ export default function DashboardView(props: DashboardViewProps) {
                   notionError={props.notionError}
                   notionBusy={props.notionBusy}
                   connectNotion={props.connectNotion}
+                  owlExecutionMode={props.owlExecutionMode}
+                  setOwlExecutionMode={props.setOwlExecutionMode}
+                  owlRemoteUrl={props.owlRemoteUrl}
+                  setOwlRemoteUrl={props.setOwlRemoteUrl}
                 />
               </Match>
 
@@ -1728,7 +1736,6 @@ export default function DashboardView(props: DashboardViewProps) {
           {navItem("skills", "Skills", <Zap size={18} />)}
           {navItem("mcp", "Extensions", <Box size={18} />)}
           {navItem("identities", "Messaging", <MessageCircle size={18} />)}
-          {navItem("session", "Test chat", <MessageCircle size={18} />)}
           <Show when={props.developerMode}>{navItem("config", "Advanced", <SlidersHorizontal size={18} />)}</Show>
         </div>
       </aside>
