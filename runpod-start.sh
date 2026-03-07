@@ -139,19 +139,21 @@ fi
 
 # ─── Start OWL Python Worker on port 5000 ───────────────────────────────
 echo "▶ Starting OWL remote worker on port 5000..."
+set +e
 cd /workspace/MAYA/src/owl-backend
 if [ ! -d "venv" ]; then
-    python3 -m venv venv
+    python3 -m venv venv >> /tmp/owl-install.log 2>&1
 fi
-source venv/bin/activate
+source venv/bin/activate >> /tmp/owl-install.log 2>&1
 echo "  Installing Python dependencies (this may take a minute)..."
-pip install -r requirements.txt > /tmp/owl-install.log 2>&1
+pip install -r requirements.txt >> /tmp/owl-install.log 2>&1
 echo "  Installing Playwright browsers..."
-playwright install chromium >> /tmp/owl-install.log 2>&1 || true
+playwright install chromium >> /tmp/owl-install.log 2>&1
 nohup uvicorn main:app --host 0.0.0.0 --port 5000 > /tmp/owl-worker.log 2>&1 &
 OWL_PID=$!
 echo "  OWL Worker PID: $OWL_PID"
 cd /workspace/MAYA
+set -e
 
 # ─── Start ngrok tunnel ───────────────────────────────────────────────────────
 echo "▶ Starting ngrok tunnel → port $SERVER_PORT..."
