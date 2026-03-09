@@ -119,9 +119,9 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
 
       if (input.method !== "GET" && input.method !== "HEAD" && input.body) {
         try {
-          // Read streaming Request bodies into a solid ArrayBuffer
-          // to completely sidestep 'duplex: half' requirements in Tauri IPC
-          newInit.body = await input.clone().arrayBuffer();
+          // Read streaming Request bodies into a solid byte array (Uint8Array)
+          // to completely sidestep 'duplex: half' and ArrayBuffer IPC limitations
+          newInit.body = new Uint8Array(await input.clone().arrayBuffer());
         } catch {
           newInit.body = input.body;
         }
