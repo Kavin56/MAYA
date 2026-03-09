@@ -634,7 +634,7 @@ export function createSessionStore(options: {
 
       mark("checking health");
       try {
-        await withTimeout(c.global.health(), 3000, "health");
+        await withTimeout(c.global.health(), 30000, "health");
         mark("health ok");
       } catch (error) {
         mark("health FAILED", {
@@ -645,7 +645,7 @@ export function createSessionStore(options: {
       if (abortIfStale("selection changed after health")) return;
 
       mark("calling session.messages");
-      const msgs = unwrap(await withTimeout(c.session.messages({ sessionID }), 12000, "session.messages"));
+      const msgs = unwrap(await withTimeout(c.session.messages({ sessionID }), 60000, "session.messages"));
       mark("session.messages done");
       if (abortIfStale("selection changed before messages applied")) return;
       setMessagesForSession(sessionID, msgs);
@@ -668,7 +668,7 @@ export function createSessionStore(options: {
 
       try {
         mark("calling session.todo");
-        const list = unwrap(await withTimeout(c.session.todo({ sessionID }), 8000, "session.todo"));
+        const list = unwrap(await withTimeout(c.session.todo({ sessionID }), 30000, "session.todo"));
         mark("session.todo done");
         if (abortIfStale("selection changed before todos applied")) return;
         setStore("todos", sessionID, list);
@@ -682,7 +682,7 @@ export function createSessionStore(options: {
 
       try {
         mark("calling permission.list");
-        await withTimeout(refreshPendingPermissions(), 6000, "permission.list");
+        await withTimeout(refreshPendingPermissions(), 30000, "permission.list");
         mark("permission.list done");
         if (abortIfStale("selection changed before permissions applied")) return;
       } catch (error) {

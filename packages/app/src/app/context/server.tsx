@@ -114,7 +114,7 @@ export function ServerProvider(props: ParentProps & { defaultUrl: string }) {
       url,
       undefined,
       token && url.includes("/opencode") ? { mode: "openwork", token } : undefined,
-      { signal: AbortSignal.timeout(3000) }
+      { signal: AbortSignal.timeout(30000) }
     );
 
     return client.global
