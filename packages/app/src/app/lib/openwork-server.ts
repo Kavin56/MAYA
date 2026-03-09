@@ -839,13 +839,14 @@ async function fetchWithTimeout(
   init: RequestInit,
   timeoutMs: number,
 ) {
+  const mergedInit = { ...init, keepalive: true };
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    return fetchImpl(input, init);
+    return fetchImpl(input, mergedInit);
   }
 
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   const signal = controller?.signal;
-  const initWithSignal = signal && !init.signal ? { ...init, signal } : init;
+  const initWithSignal = signal && !mergedInit.signal ? { ...mergedInit, signal } : mergedInit;
 
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   const timeoutPromise = new Promise<never>((_, reject) => {

@@ -23,13 +23,14 @@ async function fetchWithTimeout(
   timeoutMs: number,
 ) {
   const urlString = typeof input === "string" ? input : (input instanceof URL ? input.toString() : (input as Request).url || "");
+  const mergedInit = { ...init, keepalive: true };
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || urlString.includes("/event/subscribe")) {
-    return fetchImpl(input, init);
+    return fetchImpl(input, mergedInit);
   }
 
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   const signal = controller?.signal;
-  const initWithSignal = signal && !init?.signal ? { ...(init ?? {}), signal } : init;
+  const initWithSignal = signal && !mergedInit.signal ? { ...(mergedInit ?? {}), signal } : mergedInit;
 
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   const timeoutPromise = new Promise<never>((_, reject) => {
