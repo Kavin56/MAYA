@@ -826,8 +826,8 @@ function buildAuthHeaders(token?: string, hostToken?: string, extra?: Record<str
   return headers;
 }
 
-// Use Tauri's fetch when running in the desktop app to avoid CORS issues
-const resolveFetch = () => (isTauriRuntime() ? tauriFetch : globalThis.fetch);
+// Use global browser fetch universally to bypass Tauri's Rust HTTP stack instability over Ngrok
+const resolveFetch = () => globalThis.fetch;
 
 const DEFAULT_OPENWORK_SERVER_TIMEOUT_MS = 300_000;
 

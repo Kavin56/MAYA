@@ -128,10 +128,10 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
         }
       }
 
-      // Rebuilding a Request instance drops the object, so we must invoke tauriFetch directly with URL + init
+      // Rebuilding a Request instance drops the object, so we must invoke globalThis.fetch directly with URL + init
       const timeoutOverride = input.url.includes("/event/subscribe") ? 0 : DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS;
       return fetchWithTimeout(
-        tauriFetch as unknown as typeof globalThis.fetch,
+        globalThis.fetch,
         input.url,
         newInit,
         timeoutOverride,
@@ -145,7 +145,7 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
     const timeoutOverride = urlString.includes("/event/subscribe") ? 0 : DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS;
 
     return fetchWithTimeout(
-      tauriFetch as unknown as typeof globalThis.fetch,
+      globalThis.fetch,
       input,
       {
         ...init,
