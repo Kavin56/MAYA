@@ -839,7 +839,7 @@ async function fetchWithTimeout(
   init: RequestInit,
   timeoutMs: number,
 ) {
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || url.includes("/event/subscribe")) {
     return fetchImpl(url, init);
   }
 
