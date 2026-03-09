@@ -829,7 +829,7 @@ function buildAuthHeaders(token?: string, hostToken?: string, extra?: Record<str
 // Use Tauri's fetch when running in the desktop app to avoid CORS issues
 const resolveFetch = () => (isTauriRuntime() ? tauriFetch : globalThis.fetch);
 
-const DEFAULT_OPENWORK_SERVER_TIMEOUT_MS = 10_000;
+const DEFAULT_OPENWORK_SERVER_TIMEOUT_MS = 300_000;
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 

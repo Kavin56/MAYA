@@ -14,7 +14,7 @@ export type OpencodeAuth = {
   mode?: "basic" | "openwork";
 };
 
-const DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS = 10_000;
+const DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS = 300_000;
 
 async function fetchWithTimeout(
   fetchImpl: typeof globalThis.fetch,
@@ -72,27 +72,64 @@ const resolveAuthHeader = (auth?: OpencodeAuth) => {
   return encoded ? `Basic ${encoded}` : null;
 };
 
+const serializeHeaders = (headers: HeadersInit | undefined): Record<string, string> => {
+  if (!headers) return {};
+  if (headers instanceof Headers) {
+    const obj: Record<string, string> = {};
+    headers.forEach((value, key) => {
+      obj[key] = value;
+    });
+    return obj;
+  }
+  if (Array.isArray(headers)) {
+    const obj: Record<string, string> = {};
+    for (const [key, value] of headers) {
+      obj[key] = value;
+    }
+    return obj;
+  }
+  return headers as Record<string, string>;
+};
+
 const createTauriFetch = (auth?: OpencodeAuth) => {
   const authHeader = resolveAuthHeader(auth);
-  const addAuth = (headers: Headers) => {
-    if (!authHeader || headers.has("Authorization")) return;
-    headers.set("Authorization", authHeader);
+  const addAuth = (headers: Record<string, string>) => {
+    const authKey = Object.keys(headers).find(k => k.toLowerCase() === "authorization");
+    if (!authHeader || authKey) return;
+    headers["Authorization"] = authHeader;
   };
 
   return (input: RequestInfo | URL, init?: RequestInit) => {
     if (input instanceof Request) {
-      const headers = new Headers(input.headers);
+      const headers = serializeHeaders(input.headers);
       addAuth(headers);
-      const request = new Request(input, { headers });
+
+      const newInit: RequestInit = {
+        method: input.method,
+        headers,
+        cache: input.cache,
+        credentials: input.credentials,
+        integrity: input.integrity,
+        mode: input.mode,
+        redirect: input.redirect,
+        referrer: input.referrer,
+        referrerPolicy: input.referrerPolicy,
+      };
+
+      if (input.method !== "GET" && input.method !== "HEAD") {
+        newInit.body = input.body;
+      }
+
+      // Rebuilding a Request instance drops the object, so we must invoke tauriFetch directly with URL + init
       return fetchWithTimeout(
         tauriFetch as unknown as typeof globalThis.fetch,
-        request,
-        undefined,
+        input.url,
+        newInit,
         DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS,
       );
     }
 
-    const headers = new Headers(init?.headers);
+    const headers = serializeHeaders(init?.headers);
     addAuth(headers);
     return fetchWithTimeout(
       tauriFetch as unknown as typeof globalThis.fetch,
