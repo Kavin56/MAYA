@@ -99,7 +99,7 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
     headers["Authorization"] = authHeader;
   };
 
-  return (input: RequestInfo | URL, init?: RequestInit) => {
+  return async (input: RequestInfo | URL, init?: RequestInit) => {
     if (input instanceof Request) {
       const headers = serializeHeaders(input.headers);
       addAuth(headers);
@@ -116,9 +116,14 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
         referrerPolicy: input.referrerPolicy,
       };
 
-      if (input.method !== "GET" && input.method !== "HEAD") {
-        newInit.body = input.body;
-        (newInit as any).duplex = "half";
+      if (input.method !== "GET" && input.method !== "HEAD" && input.body) {
+        try {
+          // Read streaming Request bodies into a solid ArrayBuffer
+          // to completely sidestep 'duplex: half' requirements in Tauri IPC
+          newInit.body = await input.clone().arrayBuffer();
+        } catch {
+          newInit.body = input.body;
+        }
       }
 
       // Rebuilding a Request instance drops the object, so we must invoke tauriFetch directly with URL + init
@@ -133,19 +138,13 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
     const headers = serializeHeaders(init?.headers);
     addAuth(headers);
 
-    const fetchInit: RequestInit & { duplex?: string } = {
-      ...init,
-      headers,
-    };
-
-    if (fetchInit.body || (init?.method && init.method !== "GET" && init.method !== "HEAD")) {
-      fetchInit.duplex = "half";
-    }
-
     return fetchWithTimeout(
       tauriFetch as unknown as typeof globalThis.fetch,
       input,
-      fetchInit,
+      {
+        ...init,
+        headers,
+      },
       DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS,
     );
   };
