@@ -835,12 +835,12 @@ type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respo
 
 async function fetchWithTimeout(
   fetchImpl: FetchLike,
-  url: string,
+  input: RequestInfo | URL,
   init: RequestInit,
   timeoutMs: number,
 ) {
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || url.includes("/event/subscribe")) {
-    return fetchImpl(url, init);
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return fetchImpl(input, init);
   }
 
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -860,7 +860,7 @@ async function fetchWithTimeout(
   });
 
   try {
-    return await Promise.race([fetchImpl(url, initWithSignal), timeoutPromise]);
+    return await Promise.race([fetchImpl(input, initWithSignal), timeoutPromise]);
   } catch (error) {
     const name = (error && typeof error === "object" && "name" in error ? (error as any).name : "") as string;
     if (name === "AbortError") {

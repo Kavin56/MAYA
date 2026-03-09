@@ -22,7 +22,8 @@ async function fetchWithTimeout(
   init: RequestInit | undefined,
   timeoutMs: number,
 ) {
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+  const urlString = typeof input === "string" ? input : (input instanceof URL ? input.toString() : (input as Request).url || "");
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || urlString.includes("/event/subscribe")) {
     return fetchImpl(input, init);
   }
 
@@ -139,7 +140,7 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
     const headers = serializeHeaders(init?.headers);
     addAuth(headers);
 
-    const urlString = typeof input === "string" ? input : (input as URL).toString();
+    const urlString = typeof input === "string" ? input : (input instanceof Request ? input.url : input.toString());
     const timeoutOverride = urlString.includes("/event/subscribe") ? 0 : DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS;
 
     return fetchWithTimeout(
