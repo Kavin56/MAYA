@@ -1,12 +1,14 @@
-# MAYA RunPod Deployment Guide
+# MAYA Cloud Worker Deployment Guide
 
-This guide details how to seamlessly deploy the entire MAYA AI stack (OpenCode Engine, MAYA Server, and Python OWL Worker) on a fresh RunPod instance.
+This guide details how to seamlessly deploy the remote backend of the MAYA AI stack (OpenCode Engine + MAYA Server + OpenWork API) on a Linux Virtual Private Server (VPS) or a RunPod instance.
+
+By deploying this into the cloud, you can run the MAYA Desktop application locally on any low-end hardware, while all heavy AI execution, terminal commands, and workspace file generations safely happen on the remote cloud worker!
 
 ## 🚀 Step-by-Step Deployment
 
 When you spin up a new Pod on RunPod (e.g., using a PyTorch or Ubuntu template) and connect via SSH or the Web Terminal, simply copy and paste the following commands.
 
-This will install all necessary dependencies, clone your repository, and start all services securely in the background using `tmux`.
+This will install all necessary dependencies, clone the repository, and start all services securely in the background using `tmux`.
 
 ```bash
 # ── 1. System packages ─────────────────────────────────────
@@ -34,9 +36,9 @@ chmod +x runpod-start.sh
 
 ## 🔍 Monitoring the Services
 
-Because we used `tmux`, the services are running safely in the background. Even if you close your RunPod terminal, they will continue to run.
+Because we used `tmux`, the services are running safely in the background. Even if you close your RunPod terminal, they will continue to run perpetually.
 
-**To view the real-time logs and the ngrok URL:**
+**To view the real-time logs and the active Ngrok tunnel:**
 ```bash
 tmux attach-session -t dev
 ```
@@ -44,10 +46,12 @@ tmux attach-session -t dev
 
 ## 🌐 Connecting your Desktop App
 
-1. Once the setup script finishes, it will print a public **ngrok URL** (e.g. `https://nondetonating-cecile-nongrounded.ngrok-free.dev`).
-2. Open your MAYA Desktop App (`.exe`).
-3. Go to **Settings** -> **Advanced**.
-4. In the **OWL Remote Worker** section, select **Cloud Worker**.
-5. Paste the ngrok URL into the Remote Worker URL field.
+Because the latest versions of the MAYA Desktop `.exe` are uniquely pre-configured to communicate with the cloud endpoint automatically, connecting is literally a single click.
 
-**Note on internal routing:** You only need *one* ngrok URL. The MAYA server automatically handles routing API requests to `/worker/...` directly into the Python OWL backend running on port 5000 inside the pod.
+1. Open your **MAYA Desktop App** (`.exe`).
+2. Go to **Settings** -> **Advanced**.
+3. Under the **OWL Remote Worker** section, click **Cloud Worker**.
+
+🎉 That's it! 
+
+The Desktop App will elegantly bypass the Ngrok security layers, securely fetch its internal authorization tokens, dynamically mount the Remote Workspace, and establish a permanent streaming 5-minute timeout connection to the Cloud Worker! All subsequent queries to the MAYA AI will be seamlessly executed on your RunPod VPS.
