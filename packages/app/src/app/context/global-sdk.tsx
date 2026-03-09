@@ -1,4 +1,4 @@
-import { createOpencodeClient, type Event } from "@opencode-ai/sdk/v2/client";
+import { type Event } from "@opencode-ai/sdk/v2/client";
 import { createGlobalEmitter } from "@solid-primitives/event-bus";
 import {
   batch,
@@ -12,10 +12,11 @@ import {
 
 import { usePlatform } from "./platform";
 import { useServer } from "./server";
+import { createClient } from "../lib/opencode";
 
 type GlobalSDKContextValue = {
   url: () => string;
-  client: () => ReturnType<typeof createOpencodeClient>;
+  client: () => ReturnType<typeof createClient>;
   event: ReturnType<typeof createGlobalEmitter<{ [key: string]: Event }>>;
 };
 
@@ -26,12 +27,7 @@ export function GlobalSDKProvider(props: ParentProps) {
   const platform = usePlatform();
   const emitter = createGlobalEmitter<{ [key: string]: Event }>();
   const [client, setClient] = createSignal(
-    createOpencodeClient({
-      baseUrl: server.url,
-      headers: { "ngrok-skip-browser-warning": "1" },
-      fetch: platform.fetch,
-      throwOnError: true,
-    }),
+    createClient(server.url, undefined, undefined, { throwOnError: true }),
   );
   const [url, setUrl] = createSignal(server.url);
 
@@ -47,20 +43,16 @@ export function GlobalSDKProvider(props: ParentProps) {
         return "";
       }
     })();
-    const headers: Record<string, string> = { "ngrok-skip-browser-warning": "1" };
-    if (token && baseUrl.includes("/opencode")) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
     setUrl(baseUrl);
 
     // Always keep the request client in sync with the active URL.
     setClient(
-      createOpencodeClient({
+      createClient(
         baseUrl,
-        headers,
-        fetch: platform.fetch,
-        throwOnError: true,
-      }),
+        undefined,
+        token && baseUrl.includes("/opencode") ? { mode: "openwork", token } : undefined,
+        { throwOnError: true }
+      ),
     );
 
     // Avoid silent retry loops (SSE reconnects) when the dependency is unavailable.
@@ -69,12 +61,12 @@ export function GlobalSDKProvider(props: ParentProps) {
     }
 
     const abort = new AbortController();
-    const eventClient = createOpencodeClient({
+    const eventClient = createClient(
       baseUrl,
-      headers,
-      signal: abort.signal,
-      fetch: platform.fetch,
-    });
+      undefined,
+      token && baseUrl.includes("/opencode") ? { mode: "openwork", token } : undefined,
+      { signal: abort.signal }
+    );
 
     type Queued = { directory: string; payload: Event };
 

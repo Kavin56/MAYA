@@ -1,6 +1,5 @@
 import { createContext, createEffect, createMemo, createSignal, onCleanup, useContext, type ParentProps } from "solid-js";
-import { createOpencodeClient } from "@opencode-ai/sdk/v2/client";
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { createClient } from "../lib/opencode";
 
 import { isTauriRuntime } from "../utils";
 
@@ -110,16 +109,14 @@ export function ServerProvider(props: ParentProps & { defaultUrl: string }) {
   const checkHealth = async (url: string) => {
     if (!url) return false;
     const token = readOpenworkToken();
-    const headers: Record<string, string> = { "ngrok-skip-browser-warning": "1" };
-    if (token && url.includes("/opencode")) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-    const client = createOpencodeClient({
-      baseUrl: url,
-      headers,
-      signal: AbortSignal.timeout(3000),
-      fetch: isTauriRuntime() ? tauriFetch : undefined,
-    });
+
+    const client = createClient(
+      url,
+      undefined,
+      token && url.includes("/opencode") ? { mode: "openwork", token } : undefined,
+      { signal: AbortSignal.timeout(3000) }
+    );
+
     return client.global
       .health()
       .then((result) => result.data?.healthy === true)

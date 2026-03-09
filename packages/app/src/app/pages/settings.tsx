@@ -122,8 +122,6 @@ export type SettingsViewProps = {
   engineDoctorVersion: string | null;
   owlExecutionMode: "local" | "cloud";
   setOwlExecutionMode: (mode: "local" | "cloud") => void;
-  owlRemoteUrl: string;
-  setOwlRemoteUrl: (url: string) => void;
 };
 
 // OpenCodeRouter Settings Component

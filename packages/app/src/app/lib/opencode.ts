@@ -118,6 +118,7 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
 
       if (input.method !== "GET" && input.method !== "HEAD") {
         newInit.body = input.body;
+        (newInit as any).duplex = "half";
       }
 
       // Rebuilding a Request instance drops the object, so we must invoke tauriFetch directly with URL + init
@@ -131,13 +132,20 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
 
     const headers = serializeHeaders(init?.headers);
     addAuth(headers);
+
+    const fetchInit: RequestInit & { duplex?: string } = {
+      ...init,
+      headers,
+    };
+
+    if (fetchInit.body || (init?.method && init.method !== "GET" && init.method !== "HEAD")) {
+      fetchInit.duplex = "half";
+    }
+
     return fetchWithTimeout(
       tauriFetch as unknown as typeof globalThis.fetch,
       input,
-      {
-        ...init,
-        headers,
-      },
+      fetchInit,
       DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS,
     );
   };
@@ -156,7 +164,12 @@ export function unwrap<T>(result: FieldsResult<T>): NonNullable<T> {
   throw new Error(message || "Unknown error");
 }
 
-export function createClient(baseUrl: string, directory?: string, auth?: OpencodeAuth) {
+export function createClient(
+  baseUrl: string,
+  directory?: string,
+  auth?: OpencodeAuth,
+  options?: any
+) {
   const headers: Record<string, string> = {
     "ngrok-skip-browser-warning": "1",
   };
@@ -174,8 +187,9 @@ export function createClient(baseUrl: string, directory?: string, auth?: Opencod
   return createOpencodeClient({
     baseUrl,
     directory,
-    headers: Object.keys(headers).length ? headers : undefined,
+    headers: Object.keys(headers).length ? Object.assign(headers, options?.headers) : options?.headers,
     fetch: fetchImpl,
+    ...options,
   });
 }
 
