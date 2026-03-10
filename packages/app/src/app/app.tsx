@@ -3363,6 +3363,9 @@ export default function App() {
     const next: ModelOption[] = [];
 
     for (const provider of sortedProviders) {
+      // MAYA: Only expose OpenRouter models in the chat model picker
+      if (provider.id !== "openrouter") continue;
+
       const defaultModelID = defaults[provider.id];
       const isConnected = providerConnectedIds().includes(provider.id);
       const models = Object.values(provider.models ?? {}).filter(
