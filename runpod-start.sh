@@ -12,8 +12,6 @@
 
 set -e
 
-
-
 NGROK_DOMAIN="nondetonating-cecile-nongrounded.ngrok-free.dev"
 
 NGROK_AUTHTOKEN="3841GHziqbUnXfyEo7KhmabjLvm_QyAUhK2Qb2phjEK59T5o"
@@ -21,8 +19,6 @@ NGROK_AUTHTOKEN="3841GHziqbUnXfyEo7KhmabjLvm_QyAUhK2Qb2phjEK59T5o"
 SERVER_PORT=8787
 
 OPENCODE_PORT=4096
-
-
 
 # Load secrets from .env (never commit .env to git)
 
@@ -42,8 +38,6 @@ else
 
 fi
 
-
-
 echo ""
 
 echo "╔════════════════════════════════════════════╗"
@@ -53,8 +47,6 @@ echo "║         MAYA RunPod Startup                ║"
 echo "╚════════════════════════════════════════════╝"
 
 echo ""
-
-
 
 # ─── 1. Install Bun ──────────────────────────────────────────────────────────
 
@@ -76,15 +68,11 @@ else
 
 fi
 
-
-
 # Ensure bun is on PATH for subsequent commands
 
 export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
 
 export PATH="$BUN_INSTALL/bin:$PATH"
-
-
 
 # ─── 2. Install ngrok ────────────────────────────────────────────────────────
 
@@ -92,13 +80,9 @@ if ! command -v ngrok &>/dev/null; then
 
   echo "[2/5] Installing ngrok..."
 
-  curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+  curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
 
-    | tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-
-  echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-
-    | tee /etc/apt/sources.list.d/ngrok.list
+  echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | tee /etc/apt/sources.list.d/ngrok.list
 
   apt-get update -qq && apt-get install -y ngrok -qq
 
@@ -110,8 +94,6 @@ else
 
 fi
 
-
-
 # ─── 3. Authenticate ngrok ───────────────────────────────────────────────────
 
 echo "[3/5] Configuring ngrok authtoken..."
@@ -120,15 +102,11 @@ ngrok config add-authtoken "$NGROK_AUTHTOKEN"
 
 echo "      ngrok authenticated."
 
-
-
 # ─── 4. Install project dependencies ─────────────────────────────────────────
 
 echo "[4/5] Installing project dependencies..."
 
 cd "$(dirname "$0")"   # switch to the script's directory (project root)
-
-
 
 if ! command -v pnpm &>/dev/null; then
 
@@ -138,19 +116,13 @@ if ! command -v pnpm &>/dev/null; then
 
 fi
 
-
-
 pnpm install --frozen-lockfile 2>/dev/null || pnpm install
 
 echo "      Dependencies installed."
 
-
-
 # ─── 5. Set environment variables ────────────────────────────────────────────
 
 echo "[5/5] Configuring environment..."
-
-
 
 # OpenWork server settings
 
@@ -162,19 +134,13 @@ export MAYA_APPROVAL_MODE=auto
 
 export MAYA_CORS_ORIGINS="*"
 
-
-
 # Connect the OpenWork server to the local opencode engine
 
 export MAYA_OPENCODE_BASE_URL="http://127.0.0.1:$OPENCODE_PORT"
 
-
-
 # Workspace path (adjust if your code is somewhere else)
 
 export MAYA_WORKSPACES="${MAYA_WORKSPACES:-/workspace}"
-
-
 
 # Token setup:
 
@@ -198,8 +164,6 @@ else
 
 fi
 
-
-
 if [ -z "$MAYA_HOST_TOKEN" ]; then
 
   export MAYA_HOST_TOKEN="ow-host-$(head -c 16 /dev/urandom | base64 | tr -d '/+=' | head -c 24)"
@@ -212,8 +176,6 @@ else
 
 fi
 
-
-
 echo ""
 
 echo "─────────────────────────────────────────────"
@@ -221,8 +183,6 @@ echo "────────────────────────�
 echo " Starting services..."
 
 echo "─────────────────────────────────────────────"
-
-
 
 # ─── Start opencode server ───────────────────────────────────────────────────
 
@@ -245,8 +205,6 @@ else
   echo "   Install: curl -fsSL https://opencode.ai/install | bash"
 
 fi
-
-
 
 # ─── Start maya-server (OpenWork) on port 8787 ───────────────────────────────
 
@@ -272,13 +230,9 @@ SERVER_PID=$!
 
 echo "  maya-server PID: $SERVER_PID"
 
-
-
 # Give the server a moment to bind the port
 
 sleep 3
-
-
 
 # Health check
 
@@ -293,8 +247,6 @@ else
   cat /tmp/maya-server.log
 
 fi
-
-
 
 # ─── Start OWL Python Worker on port 5000 ───────────────────────────────
 
@@ -330,8 +282,6 @@ cd /workspace/MAYA
 
 set -e
 
-
-
 # ─── Start ngrok tunnel ───────────────────────────────────────────────────────
 
 echo "▶ Starting ngrok tunnel → port $SERVER_PORT..."
@@ -349,8 +299,6 @@ NGROK_PID=$!
 echo "  ngrok PID: $NGROK_PID"
 
 sleep 2
-
-
 
 echo ""
 
@@ -391,8 +339,6 @@ echo ""
 echo "Client token (use in web UI): $MAYA_TOKEN"
 
 echo ""
-
-
 
 # Keep the script alive so the pod doesn't exit
 
