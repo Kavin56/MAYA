@@ -2,7 +2,8 @@
 # MAYA OWL Remote Worker - RunPod Startup Script
 
 # ───────── API Keys ─────────────────────────────────────────────────────────
-export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-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}"
+# ───────── API Keys ─────────────────────────────────────────────────────────
+export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-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}"
 
 # 1. Update system packages
 apt-get update -y
