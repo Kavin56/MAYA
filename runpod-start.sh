@@ -10,7 +10,16 @@ NGROK_DOMAIN="nondetonating-cecile-nongrounded.ngrok-free.dev"
 NGROK_AUTHTOKEN="3841GHziqbUnXfyEo7KhmabjLvm_QyAUhK2Qb2phjEK59T5o"
 SERVER_PORT=8787
 OPENCODE_PORT=4096
-export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-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}"
+
+# Load secrets from .env (never commit .env to git)
+if [ -f "$(dirname "$0")/src/owl-backend/.env" ]; then
+  set -a
+  source "$(dirname "$0")/src/owl-backend/.env"
+  set +a
+  echo "[env] Loaded secrets from src/owl-backend/.env"
+else
+  echo "[warn] No .env found at src/owl-backend/.env — set OPENROUTER_API_KEY manually"
+fi
 
 echo ""
 echo "╔════════════════════════════════════════════╗"

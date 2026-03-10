@@ -1,9 +1,15 @@
 #!/bin/bash
 # MAYA OWL Remote Worker - RunPod Startup Script
 
-# ───────── API Keys ─────────────────────────────────────────────────────────
-# ───────── API Keys ─────────────────────────────────────────────────────────
-export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-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}"
+# ───────── API Keys — loaded from .env (never hardcode here) ─────────────────
+if [ -f "$(dirname "$0")/.env" ]; then
+  set -a
+  source "$(dirname "$0")/.env"
+  set +a
+  echo "[env] Loaded secrets from .env"
+else
+  echo "[warn] No .env found — create src/owl-backend/.env with OPENROUTER_API_KEY"
+fi
 
 # 1. Update system packages
 apt-get update -y
