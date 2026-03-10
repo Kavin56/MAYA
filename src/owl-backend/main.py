@@ -8,9 +8,14 @@ try:
     from camel.messages import BaseMessage
     from camel.models import ModelFactory
     from camel.types import ModelPlatformType, ModelType, RoleType
+    from camel.societies.workforce import Workforce
+    from camel.tasks import Task
     CAMEL_AVAILABLE = True
 except ImportError:
     CAMEL_AVAILABLE = False
+    
+# Initialize OpenRouter API keys if available
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 app = FastAPI(title="MAYA OWL Remote Worker")
 
@@ -41,31 +46,75 @@ async def run_task(req: TaskRequest):
         }
         
     try:
-        # Determine the model. OWL handles routing implicitly, 
-        # but here we can define a basic setup based on the request.
+        # Require API Key context
+        if not OPENROUTER_API_KEY:
+            raise HTTPException(status_code=400, detail="OPENROUTER_API_KEY is not configured in the backend environment.")
+            
+        os.environ["OPENROUTER_API_KEY"] = OPENROUTER_API_KEY
+            
+        # 1. Determine the Model
+        #    If "auto", we use a strong reasoning model to orchestrate. 
+        #    If "byo:<model_id>", we force all agents to use that specific OpenRouter model.
+        
+        target_model = req.target_model.lower().strip()
+        actual_model_string = "anthropic/claude-3-opus" # High quality orchestrator default for 'auto'
+        
+        if target_model.startswith("byo:"):
+            actual_model_string = req.target_model[4:].strip()
+            
+        # Prepare the CAMEL-AI Model Factory configured strictly for OpenRouter
         model = ModelFactory.create(
-            model_platform=ModelPlatformType.OPENAI,
-            model_type=ModelType.DEFAULT
+            model_platform=ModelPlatformType.OPENROUTER,
+            model_type=actual_model_string,
         )
         
+        # 2. Build the Multi-Agent Workforce
+        workforce = Workforce("MAYA OWL Local/Remote Workforce")
+        
+        # Orchestrator (master agent)
         sys_msg = BaseMessage.make_assistant_message(
             role_name="OWL Orchestrator",
-            content="You are the OWL master agent. You break down tasks and direct them to appropriate tools or sub-agents."
+            content="You are the MAYA OWL orchestrator agent. Break tasks down into smaller steps if needed, and rely on sub-agents to synthesize data."
+        )
+        orchestrator_agent = ChatAgent(system_message=sys_msg, model=model)
+        
+        # Sub-agents with the same/specific targeted OpenRouter models
+        researcher = ChatAgent(
+            system_message=BaseMessage.make_assistant_message(
+                role_name="Web Researcher", 
+                content="Search and structure context related to the user task."
+            ),
+            model=model
+        )
+        developer = ChatAgent(
+            system_message=BaseMessage.make_assistant_message(
+                role_name="Developer Agent", 
+                content="You are an expert developer. Generate specific code snippets or technical logic for the task."
+            ),
+            model=model
         )
         
-        agent = ChatAgent(system_message=sys_msg, model=model)
-        
-        user_msg = BaseMessage.make_user_message(
-            role_name="User",
-            content=req.prompt
+        workforce.add_single_agent_worker(
+            "Orchestrator", worker=orchestrator_agent, description="The master task delegator and synthesizer."
+        )
+        workforce.add_single_agent_worker(
+            "Researcher", worker=researcher, description="Retrieves structural context and gathers insights."
+        )
+        workforce.add_single_agent_worker(
+            "Developer", worker=developer, description="Writes all the necessary code logic."
+        )
+
+        task = Task(
+            content=req.prompt,
+            id="0",
         )
         
-        response = agent.step(user_msg)
+        response = workforce.process_task(task)
         
         return {
             "status": "success",
-            "result": response.msgs[0].content if response.msgs else "No response",
-            "llm_used": str(model.model_type)
+            "result": response.result if hasattr(response, 'result') else str(response),
+            "llm_used": f"openrouter/{actual_model_string}"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
