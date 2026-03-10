@@ -8,8 +8,8 @@ export const LANGUAGE_PREF_KEY = "maya.language";
 export const HIDE_TITLEBAR_PREF_KEY = "maya.hideTitlebar";
 
 export const DEFAULT_MODEL: ModelRef = {
-  providerID: "opencode",
-  modelID: "big-pickle",
+  providerID: "openrouter",
+  modelID: "google/gemini-2.5-flash",
 };
 
 export const SUGGESTED_PLUGINS: SuggestedPlugin[] = [
