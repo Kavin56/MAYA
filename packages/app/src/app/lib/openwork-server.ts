@@ -627,8 +627,10 @@ export function writeOpenworkServerSettings(next: OpenworkServerSettings): Openw
 
     if (token) {
       window.localStorage.setItem(STORAGE_TOKEN, token);
+      window.localStorage.setItem("maya.server.token", token);
     } else {
       window.localStorage.removeItem(STORAGE_TOKEN);
+      window.localStorage.removeItem("maya.server.token");
     }
 
     return readOpenworkServerSettings();

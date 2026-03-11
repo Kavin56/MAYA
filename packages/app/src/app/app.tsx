@@ -128,6 +128,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { createSessionStore } from "./context/session";
 import { createExtensionsStore } from "./context/extensions";
 import { useGlobalSync } from "./context/global-sync";
+import { useServer } from "./context/server";
 import { createWorkspaceStore } from "./context/workspace";
 import {
   updaterEnvironment,
@@ -274,6 +275,7 @@ export default function App() {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const server = useServer();
 
   const [creatingSession, setCreatingSession] = createSignal(false);
   const [sessionViewLockUntil, setSessionViewLockUntil] = createSignal(0);
@@ -2010,14 +2012,34 @@ export default function App() {
           if (!res.ok) throw new Error("Failed to fetch token");
           return res.json();
         })
-        .then(data => {
+        .then(async data => {
           if (data && data.token) {
-            updateOpenworkServerSettings({ urlOverride: staticCloudUrl, token: data.token });
-            workspaceStore.createRemoteWorkspaceFlow({
-              openworkHostUrl: staticCloudUrl,
-              openworkToken: data.token,
-              displayName: "Cloud Worker",
-            }).catch(console.error);
+            const next = writeOpenworkServerSettings({
+              ...readOpenworkServerSettings(),
+              urlOverride: staticCloudUrl,
+              token: data.token,
+            });
+            updateOpenworkServerSettings(next);
+            try {
+              const ok = await workspaceStore.createRemoteWorkspaceFlow({
+                openworkHostUrl: staticCloudUrl,
+                openworkToken: data.token,
+                displayName: "Cloud Worker",
+              });
+              if (ok) {
+                const active = workspaceStore.activeWorkspaceDisplay();
+                const opencodeBaseUrl = active?.baseUrl?.trim?.();
+                if (opencodeBaseUrl) {
+                  try {
+                    server.setActive(opencodeBaseUrl);
+                  } catch {
+                    // ignore
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("[MAYA] Failed to auto-connect to remote cloud worker:", err);
+            }
           }
         })
         .catch(err => console.error("[MAYA] Failed to auto-connect to remote cloud worker:", err));
