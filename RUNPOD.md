@@ -30,13 +30,17 @@ Required in `.env` for ngrok tunnel: `NGROK_AUTHTOKEN`, and `NGROK_DOMAIN` (e.g.
 
 ### After you push code — on RunPod (copy-paste)
 
-From repo root, pull latest and start:
+From repo root, reset scripts (so pull doesn’t fail on local changes), pull, then start:
 
 ```bash
-cd /workspace/MAYA && git pull origin master && chmod +x runpod-run.sh runpod-start.sh && ./runpod-run.sh
+cd /workspace/MAYA && git checkout -- runpod-start.sh runpod-run.sh 2>/dev/null; sed -i 's/\r$//' runpod-run.sh runpod-start.sh 2>/dev/null; git pull origin master && chmod +x runpod-run.sh runpod-start.sh && ./runpod-run.sh
 ```
 
-(`runpod-run.sh` does pull, chmod, pkill ngrok, then `./runpod-start.sh`.)
+If you see **"bad interpreter: Permission denied"**, fix CRLF then run again:
+
+```bash
+cd /workspace/MAYA && sed -i 's/\r$//' runpod-run.sh runpod-start.sh && chmod +x runpod-run.sh runpod-start.sh && ./runpod-run.sh
+```
 
 **First run only** (no git conflict):
 
