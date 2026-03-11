@@ -1994,6 +1994,13 @@ export default function App() {
     updateOpenworkServerSettings,
     openworkServerClient,
     onEngineStable: () => { },
+    onRemoteWorkspaceCreated: (baseUrl) => {
+      try {
+        server.setActive(baseUrl);
+      } catch {
+        // ignore
+      }
+    },
     engineRuntime,
     developerMode,
   });

@@ -633,6 +633,11 @@ export function writeOpenworkServerSettings(next: OpenworkServerSettings): Openw
       window.localStorage.removeItem("maya.server.token");
     }
 
+    try {
+      window.dispatchEvent(new CustomEvent("openwork-token-changed"));
+    } catch {
+      // ignore
+    }
     return readOpenworkServerSettings();
   } catch {
     return next;

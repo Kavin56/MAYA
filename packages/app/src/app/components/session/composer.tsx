@@ -377,7 +377,7 @@ const getSelectionOffsets = (root: HTMLElement) => {
 
 const restoreSelectionOffsets = (root: HTMLElement, offsets: { start: number; end: number }) => {
   const selection = window.getSelection();
-  if (!selection) return;
+  if (!selection || !root.isConnected) return;
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
   let node: Node | null;
@@ -401,16 +401,20 @@ const restoreSelectionOffsets = (root: HTMLElement, offsets: { start: number; en
     current += length;
   }
 
-  const range = document.createRange();
-  if (!startNode || !endNode) {
-    range.selectNodeContents(root);
-    range.collapse(false);
-  } else {
-    range.setStart(startNode, clamp(startOffset, 0, (startNode.textContent ?? "").length));
-    range.setEnd(endNode, clamp(endOffset, 0, (endNode.textContent ?? "").length));
+  try {
+    const range = document.createRange();
+    if (!startNode || !endNode) {
+      range.selectNodeContents(root);
+      range.collapse(false);
+    } else {
+      range.setStart(startNode, clamp(startOffset, 0, (startNode.textContent ?? "").length));
+      range.setEnd(endNode, clamp(endOffset, 0, (endNode.textContent ?? "").length));
+    }
+    selection.removeAllRanges();
+    selection.addRange(range);
+  } catch {
+    // Range may not be in document if root was unmounted
   }
-  selection.removeAllRanges();
-  selection.addRange(range);
 };
 
 const buildRangeFromOffsets = (root: HTMLElement, start: number, end: number) => {
@@ -795,15 +799,19 @@ export default function Composer(props: ComposerProps) {
   };
 
   const focusEditorEnd = () => {
-    if (!editorRef) return;
+    if (!editorRef || !editorRef.isConnected) return;
     const selection = window.getSelection();
     if (!selection) return;
-    const range = document.createRange();
-    range.selectNodeContents(editorRef);
-    range.collapse(false);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    editorRef.focus();
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(editorRef);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      editorRef.focus();
+    } catch {
+      // Range may not be in document if editor was unmounted (e.g. route change)
+    }
   };
 
   const renderParts = (parts: ComposerPart[], keepSelection = true) => {

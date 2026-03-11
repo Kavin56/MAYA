@@ -1,4 +1,4 @@
-import { createContext, createEffect, createMemo, createSignal, onCleanup, useContext, type ParentProps } from "solid-js";
+import { createContext, createEffect, createMemo, createSignal, onCleanup, onMount, useContext, type ParentProps } from "solid-js";
 import { createClient } from "../lib/opencode";
 
 import { isTauriRuntime } from "../utils";
@@ -98,6 +98,13 @@ export function ServerProvider(props: ParentProps & { defaultUrl: string }) {
 
   const activeUrl = createMemo(() => active());
 
+  const [tokenInvalidation, setTokenInvalidation] = createSignal(0);
+  onMount(() => {
+    const handler = () => setTokenInvalidation((p) => p + 1);
+    window.addEventListener("openwork-token-changed", handler);
+    return () => window.removeEventListener("openwork-token-changed", handler);
+  });
+
   const readOpenworkToken = () => {
     try {
       return (window.localStorage.getItem("maya.server.token") ?? "").trim();
@@ -113,7 +120,7 @@ export function ServerProvider(props: ParentProps & { defaultUrl: string }) {
     const client = createClient(
       url,
       undefined,
-      token && url.includes("/opencode") ? { mode: "openwork", token } : undefined,
+      token ? { mode: "openwork", token } : undefined,
       { signal: AbortSignal.timeout(30000) }
     );
 
@@ -125,6 +132,7 @@ export function ServerProvider(props: ParentProps & { defaultUrl: string }) {
 
   createEffect(() => {
     const url = activeUrl();
+    tokenInvalidation(); // re-run when token is written so we use fresh token
     if (!url) return;
 
     setHealthy(undefined);

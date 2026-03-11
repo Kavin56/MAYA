@@ -146,6 +146,7 @@ export function createWorkspaceStore(options: {
   openworkServerClient?: () => OpenworkServerClient | null;
   setOpencodeConnectStatus?: (status: OpencodeConnectStatus | null) => void;
   onEngineStable?: () => void;
+  onRemoteWorkspaceCreated?: (opencodeBaseUrl: string) => void;
   engineRuntime?: () => EngineRuntime;
   developerMode: () => boolean;
 }) {
@@ -1909,6 +1910,7 @@ export function createWorkspaceStore(options: {
           });
           syncActiveWorkspaceId(workspaceId);
           console.log("[workspace] create remote complete:", workspaceId);
+          options.onRemoteWorkspaceCreated?.(resolvedBaseUrl);
         }
 
         setProjectDir(finalDirectory);

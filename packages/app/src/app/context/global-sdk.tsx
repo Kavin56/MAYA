@@ -10,6 +10,7 @@ import {
   type ParentProps,
 } from "solid-js";
 
+import { onMount } from "solid-js";
 import { usePlatform } from "./platform";
 import { useServer } from "./server";
 import { createClient } from "../lib/opencode";
@@ -30,10 +31,17 @@ export function GlobalSDKProvider(props: ParentProps) {
     createClient(server.url, undefined, undefined, { throwOnError: true }),
   );
   const [url, setUrl] = createSignal(server.url);
+  const [tokenInvalidation, setTokenInvalidation] = createSignal(0);
+  onMount(() => {
+    const handler = () => setTokenInvalidation((p) => p + 1);
+    window.addEventListener("openwork-token-changed", handler);
+    return () => window.removeEventListener("openwork-token-changed", handler);
+  });
 
   createEffect(() => {
     const baseUrl = server.url;
     const isHealthy = server.healthy() === true;
+    tokenInvalidation(); // re-run when token is written
 
     const token = (() => {
       if (typeof window === "undefined") return "";
@@ -45,12 +53,12 @@ export function GlobalSDKProvider(props: ParentProps) {
     })();
     setUrl(baseUrl);
 
-    // Always keep the request client in sync with the active URL.
+    // Always keep the request client in sync with the active URL. Send token whenever present (OpenWork remote).
     setClient(
       createClient(
         baseUrl,
         undefined,
-        token && baseUrl.includes("/opencode") ? { mode: "openwork", token } : undefined,
+        token ? { mode: "openwork", token } : undefined,
         { throwOnError: true }
       ),
     );
@@ -64,7 +72,7 @@ export function GlobalSDKProvider(props: ParentProps) {
     const eventClient = createClient(
       baseUrl,
       undefined,
-      token && baseUrl.includes("/opencode") ? { mode: "openwork", token } : undefined,
+      token ? { mode: "openwork", token } : undefined,
       { signal: abort.signal }
     );
 
