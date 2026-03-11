@@ -200,7 +200,7 @@ echo ""
 
 echo "─────────────────────────────────────────────"
 
-echo " Starting services..."
+echo " Starting services (ngrok tunnel FIRST)..."
 
 echo "─────────────────────────────────────────────"
 
@@ -218,63 +218,67 @@ done
 
 
 
-# ─── Start opencode server ───────────────────────────────────────────────────
-
-if command -v opencode &>/dev/null; then
-
-  echo "▶ Starting opencode server on port $OPENCODE_PORT..."
-
-  nohup opencode serve --port "$OPENCODE_PORT" > /tmp/opencode.log 2>&1 &
-
-  OPENCODE_PID=$!
-
-  echo "  opencode PID: $OPENCODE_PID"
-
-  sleep 2  # give opencode time to start
-
+# ─── 1. START NGROK TUNNEL FIRST (so you see it before OWL/opencode) ─────────
+echo ""
+echo "========== NGROK TUNNEL (starting first) =========="
+if [ -z "$NGROK_AUTHTOKEN" ]; then
+  echo "  [SKIP] NGROK_AUTHTOKEN not set in src/owl-backend/.env — tunnel will not start."
+  echo "  Set NGROK_AUTHTOKEN and NGROK_DOMAIN in .env then run this script again."
 else
+  echo "  Stopping any existing ngrok..."
+  pkill -9 ngrok 2>/dev/null || true
+  killall -9 ngrok 2>/dev/null || true
+  sleep 4
+  echo "  Starting ngrok tunnel: port $SERVER_PORT -> https://$NGROK_DOMAIN"
+  : > /tmp/ngrok.log
+  set +e
+  nohup ngrok http "$SERVER_PORT" --url="https://$NGROK_DOMAIN" >> /tmp/ngrok.log 2>&1 &
+  NGROK_PID=$!
+  disown $NGROK_PID 2>/dev/null || true
+  echo "  Waiting for ngrok to register (4s)..."
+  sleep 4
+  if ps -p $NGROK_PID > /dev/null 2>&1; then
+    echo "  *** NGROK TUNNEL IS RUNNING *** (PID $NGROK_PID)"
+    echo "  Public URL: https://$NGROK_DOMAIN"
+  else
+    echo "  *** NGROK FAILED *** Run: tail -30 /tmp/ngrok.log"
+    tail -20 /tmp/ngrok.log
+  fi
+  set -e
+fi
+echo "=================================================="
+echo ""
 
+
+
+# ─── 2. Start opencode server ─────────────────────────────────────────────────
+if command -v opencode &>/dev/null; then
+  echo "▶ Starting opencode server on port $OPENCODE_PORT..."
+  nohup opencode serve --port "$OPENCODE_PORT" > /tmp/opencode.log 2>&1 &
+  OPENCODE_PID=$!
+  echo "  opencode PID: $OPENCODE_PID"
+  sleep 2
+else
   echo "⚠  opencode not found — the server will work but AI features require opencode installed."
-
   echo "   Install: curl -fsSL https://opencode.ai/install | bash"
-
 fi
 
 
 
-# ─── Start maya-server (OpenWork) on port 8787 ───────────────────────────────
-
+# ─── 3. Start maya-server (OpenWork) on port 8787 ─────────────────────────────
 echo "▶ Starting OpenWork server (maya-server) on port $SERVER_PORT..."
-
 pnpm --filter maya-server dev \
-
   --host 0.0.0.0 \
-
   --port "$SERVER_PORT" \
-
   --approval auto \
-
   --cors "*" \
-
   --opencode-base-url "http://127.0.0.1:$OPENCODE_PORT" \
-
   --workspace "$MAYA_WORKSPACES" \
-
   > /tmp/maya-server.log 2>&1 &
-
 SERVER_PID=$!
-
 echo "  maya-server PID: $SERVER_PID"
-
-
-
-# Give the server a moment to bind the port
-
 sleep 3
 
-
-
-# Health check (don't exit so we still start ngrok and user can see logs)
 set +e
 if curl -sf "http://localhost:$SERVER_PORT/health" >/dev/null; then
   echo "  ✓ maya-server is healthy"
@@ -286,30 +290,7 @@ else
 fi
 set -e
 
-# ─── Start ngrok tunnel (right after server is up so tunnel is ready early) ────
-if [ -z "$NGROK_AUTHTOKEN" ]; then
-  echo "  [skip] ngrok tunnel — NGROK_AUTHTOKEN not set in .env"
-else
-  echo "  Stopping any existing ngrok..."
-  pkill -9 ngrok 2>/dev/null || true
-  killall -9 ngrok 2>/dev/null || true
-  sleep 4
-  echo "▶ Starting ngrok tunnel → port $SERVER_PORT (https://$NGROK_DOMAIN)..."
-  set +e
-  nohup ngrok http "$SERVER_PORT" --url="https://$NGROK_DOMAIN" >> /tmp/ngrok.log 2>&1 &
-  NGROK_PID=$!
-  disown $NGROK_PID 2>/dev/null || true
-  sleep 3
-  if ps -p $NGROK_PID > /dev/null 2>&1; then
-    echo "  ✓ ngrok tunnel running (PID $NGROK_PID)"
-  else
-    echo "  ⚠️ ngrok exited — see: tail -30 /tmp/ngrok.log"
-    tail -15 /tmp/ngrok.log
-  fi
-  set -e
-fi
-
-# ─── Start OWL Python Worker on port 5000 ────────────────────────────────────
+# ─── 4. Start OWL Python Worker on port 5000 (after tunnel + server) ──────────
 OWL_DIR="$PROJECT_ROOT/src/owl-backend"
 if [ ! -d "$OWL_DIR" ]; then
   echo "⚠️  OWL backend not found at $OWL_DIR — skipping OWL worker."
