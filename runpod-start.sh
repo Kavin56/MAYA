@@ -85,15 +85,8 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 if ! command -v ngrok &>/dev/null; then
 
   echo "[2/5] Installing ngrok..."
-
-  curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-
-    | tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-
-  echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-
-    | tee /etc/apt/sources.list.d/ngrok.list
-
+  curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc -o /etc/apt/trusted.gpg.d/ngrok.asc
+  echo "deb https://ngrok-agent.s3.amazonaws.com buster main" > /etc/apt/sources.list.d/ngrok.list
   apt-get update -qq && apt-get install -y ngrok -qq
 
   echo "      ngrok installed: $(ngrok version)"
