@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(dotenv_path):
-    load_dotenv(dotenv_path)
+    load_dotenv(dotenv_path, override=True)
 else:
-    load_dotenv()
+    load_dotenv(override=True)
 
 try:
     from camel.agents import ChatAgent
@@ -27,6 +27,11 @@ except ImportError:
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 if OPENROUTER_API_KEY:
     OPENROUTER_API_KEY = OPENROUTER_API_KEY.strip().replace('"', '').replace("'", "")
+    # Masked logging for debugging (only showing prefix and suffix)
+    key_display = f"{OPENROUTER_API_KEY[:10]}...{OPENROUTER_API_KEY[-4:]}" if len(OPENROUTER_API_KEY) > 15 else "INVALID_LENGTH"
+    print(f"[OWL] Loaded API Key: {key_display}")
+else:
+    print("[OWL] WARNING: OPENROUTER_API_KEY not found in environment!")
 
 app = FastAPI(title="MAYA OWL Remote Worker")
 
