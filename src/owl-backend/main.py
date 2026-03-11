@@ -14,7 +14,7 @@ else:
 try:
     from camel.agents import ChatAgent
     from camel.messages import BaseMessage
-    from camel.models import ModelFactory
+    from camel.models import ModelFactory, OpenRouterModel
     from camel.types import ModelPlatformType, ModelType, RoleType
     from camel.societies.workforce import Workforce
     from camel.tasks import Task
@@ -82,7 +82,9 @@ async def run_task(req: TaskRequest):
             
         # Prepare the CAMEL-AI Model Factory configured strictly for OpenRouter
         # Setting max_tokens to 1000 to prevent 402 Insufficient Credit errors
-        # Adding required OpenRouter headers for better compatibility
+        # Adding explicitly the api_key to avoid 401 errors from environment issues
+        print(f"[OWL] Creating OpenRouterModel for {actual_model_string} with key prefix {OPENROUTER_API_KEY[:6] if OPENROUTER_API_KEY else 'NONE'}")
+        
         model_config = OpenRouterConfig(
             max_tokens=1000,
             extra_headers={
@@ -90,9 +92,10 @@ async def run_task(req: TaskRequest):
                 "X-Title": "MAYA OWL",
             }
         ).as_dict()
-        model = ModelFactory.create(
-            model_platform=ModelPlatformType.OPENROUTER,
+
+        model = OpenRouterModel(
             model_type=actual_model_string,
+            api_key=OPENROUTER_API_KEY,
             model_config_dict=model_config,
         )
         
