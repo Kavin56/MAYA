@@ -1169,6 +1169,9 @@ export default function App() {
         });
         assertNoClientError(result);
 
+        const dir = workspaceProjectDir().trim() || clientDirectory().trim() || ".";
+        if (dir) void globalSync.refreshDirectory(dir);
+
         setSessionModelById((current) => ({
           ...current,
           [sessionID]: model,
