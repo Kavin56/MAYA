@@ -28,21 +28,15 @@ Required in `.env` for ngrok tunnel: `NGROK_AUTHTOKEN`, and `NGROK_DOMAIN` (e.g.
 
 ## 2. Run everything
 
-### RunPod run script (copy-paste every time)
+### After you push code — on RunPod (copy-paste)
 
-From the **project root** on the pod (e.g. `/workspace/MAYA`), run this block to pull latest and start:
+From repo root, pull latest and start:
 
 ```bash
-cd /workspace/MAYA
-git checkout -- runpod-start.sh
-git pull origin master
-chmod +x runpod-start.sh
-pkill -9 ngrok 2>/dev/null || true
-sleep 4
-./runpod-start.sh
+cd /workspace/MAYA && git pull origin master && chmod +x runpod-run.sh runpod-start.sh && ./runpod-run.sh
 ```
 
-Or, after the first time you have `runpod-run.sh` in the repo, just run: `./runpod-run.sh`
+(`runpod-run.sh` does pull, chmod, pkill ngrok, then `./runpod-start.sh`.)
 
 **First run only** (no git conflict):
 
