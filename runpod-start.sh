@@ -210,6 +210,18 @@ echo "────────────────────────�
 
 
 
+# Free ports from a previous run so re-runs don't hit EADDRINUSE
+for p in $OPENCODE_PORT $SERVER_PORT 5000; do
+  pid=$(lsof -ti ":$p" 2>/dev/null || true)
+  if [ -n "$pid" ]; then
+    echo "  Stopping existing process on port $p (PID $pid)"
+    kill $pid 2>/dev/null || true
+    sleep 1
+  fi
+done
+
+
+
 # ─── Start opencode server ───────────────────────────────────────────────────
 
 if command -v opencode &>/dev/null; then
