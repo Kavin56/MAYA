@@ -24,22 +24,21 @@ OPENCODE_PORT=4096
 
 
 
-# Load secrets from .env (never commit .env to git)
-
-if [ -f "$(dirname "$0")/src/owl-backend/.env" ]; then
-
+# Load secrets: .env (local, gitignored) overrides runpod.env (committed for RunPod)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+OWL_ENV_DIR="$SCRIPT_DIR/src/owl-backend"
+if [ -f "$OWL_ENV_DIR/.env" ]; then
   set -a
-
-  source "$(dirname "$0")/src/owl-backend/.env"
-
+  source "$OWL_ENV_DIR/.env"
   set +a
-
-  echo "[env] Loaded secrets from src/owl-backend/.env"
-
+  echo "[env] Loaded from src/owl-backend/.env"
+elif [ -f "$OWL_ENV_DIR/runpod.env" ]; then
+  set -a
+  source "$OWL_ENV_DIR/runpod.env"
+  set +a
+  echo "[env] Loaded from src/owl-backend/runpod.env"
 else
-
-  echo "[warn] No .env found at src/owl-backend/.env — set OPENROUTER_API_KEY manually"
-
+  echo "[warn] No .env or runpod.env — set OPENROUTER_API_KEY (and NGROK_AUTHTOKEN) manually or in RunPod env"
 fi
 
 
@@ -127,8 +126,7 @@ echo "      ngrok authenticated."
 echo "[4/5] Installing project dependencies..."
 
 cd "$(dirname "$0")"   # switch to the script's directory (project root)
-
-
+PROJECT_ROOT="$(pwd)"
 
 if ! command -v pnpm &>/dev/null; then
 
@@ -297,38 +295,43 @@ fi
 
 
 # ─── Start OWL Python Worker on port 5000 ────────────────────────────────────
-echo "▶ Starting OWL worker (CAMEL-AI) on port 5000..."
-cd /workspace/MAYA/src/owl-backend
-
-if [ ! -d "venv" ]; then
-  echo "  Creating Python virtual environment..."
-  python3 -m venv venv
-fi
-
-echo "  Installing Python dependencies..."
-set +e
-./venv/bin/pip install --upgrade pip -q
-./venv/bin/pip install fastapi uvicorn pydantic python-dotenv requests -q
-./venv/bin/pip install openai -q
-./venv/bin/pip install "camel-ai>=0.2.0" --no-deps -q
-set -e
-
-echo "  Starting OWL backend..."
-nohup ./venv/bin/python main.py > /tmp/owl-worker.log 2>&1 &
-OWL_PID=$!
-echo "  OWL worker PID: $OWL_PID"
-sleep 3
-
-set +e
-if ps -p $OWL_PID > /dev/null 2>&1; then
-  echo "  ✓ OWL worker is running."
+OWL_DIR="$PROJECT_ROOT/src/owl-backend"
+if [ ! -d "$OWL_DIR" ]; then
+  echo "⚠️  OWL backend not found at $OWL_DIR — skipping OWL worker."
 else
-  echo "  ⚠️ OWL worker failed to start!"
-  cat /tmp/owl-worker.log
-fi
-set -e
+  echo "▶ Starting OWL worker on port 5000..."
+  cd "$OWL_DIR"
 
-cd /workspace/MAYA
+  if [ ! -d "venv" ]; then
+    echo "  Creating Python virtual environment..."
+    python3 -m venv venv
+  fi
+
+  echo "  Installing Python dependencies..."
+  set +e
+  ./venv/bin/pip install --upgrade pip -q
+  ./venv/bin/pip install -r requirements.txt -q 2>/dev/null || ./venv/bin/pip install fastapi uvicorn pydantic python-dotenv requests -q
+  ./venv/bin/pip install openai -q
+  ./venv/bin/pip install "camel-ai>=0.2.0" --no-deps -q 2>/dev/null || true
+  set -e
+
+  echo "  Starting OWL backend (uvicorn 0.0.0.0:5000)..."
+  nohup ./venv/bin/uvicorn main:app --host 0.0.0.0 --port 5000 > /tmp/owl-worker.log 2>&1 &
+  OWL_PID=$!
+  echo "  OWL worker PID: $OWL_PID"
+  sleep 3
+
+  set +e
+  if ps -p $OWL_PID > /dev/null 2>&1; then
+    echo "  ✓ OWL worker is running."
+  else
+    echo "  ⚠️ OWL worker failed to start — check /tmp/owl-worker.log:"
+    tail -30 /tmp/owl-worker.log
+  fi
+  set -e
+
+  cd "$PROJECT_ROOT"
+fi
 
 set -e
 
@@ -377,6 +380,8 @@ echo "║  Logs:                                                         ║"
 echo "║    opencode:    /tmp/opencode.log                              ║"
 
 echo "║    maya-server: /tmp/maya-server.log                           ║"
+
+echo "║    owl-worker:  /tmp/owl-worker.log                             ║"
 
 echo "║    ngrok:       /tmp/ngrok.log                                 ║"
 
