@@ -24,7 +24,7 @@ OPENCODE_PORT=4096
 
 
 
-# Load secrets: .env (local, gitignored) overrides runpod.env (committed for RunPod)
+# Load secrets from .env only (gitignored — never commit real keys)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OWL_ENV_DIR="$SCRIPT_DIR/src/owl-backend"
 if [ -f "$OWL_ENV_DIR/.env" ]; then
@@ -32,13 +32,8 @@ if [ -f "$OWL_ENV_DIR/.env" ]; then
   source "$OWL_ENV_DIR/.env"
   set +a
   echo "[env] Loaded from src/owl-backend/.env"
-elif [ -f "$OWL_ENV_DIR/runpod.env" ]; then
-  set -a
-  source "$OWL_ENV_DIR/runpod.env"
-  set +a
-  echo "[env] Loaded from src/owl-backend/runpod.env"
 else
-  echo "[warn] No .env or runpod.env — set OPENROUTER_API_KEY (and NGROK_AUTHTOKEN) manually or in RunPod env"
+  echo "[warn] No src/owl-backend/.env — copy .env.example to .env and set OPENROUTER_API_KEY (and NGROK_AUTHTOKEN), or set RunPod env vars"
 fi
 
 

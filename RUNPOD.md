@@ -17,10 +17,14 @@ git clone https://github.com/Kavin56/MAYA.git /workspace/MAYA
 cd /workspace/MAYA
 ```
 
-Secrets for RunPod are in **`src/owl-backend/runpod.env`** (committed). After `git pull`, the startup script sources it — no need to type keys in the terminal.
+**Secrets:** Never commit API keys. Create `src/owl-backend/.env` (gitignored) from the example:
 
-- **Security:** Keep this repo private. If the repo is ever made public or shared, rotate `OPENROUTER_API_KEY` and `NGROK_AUTHTOKEN` immediately.
-- To use different keys (e.g. local only), create `src/owl-backend/.env` (gitignored); the script prefers `.env` when present, otherwise uses `runpod.env`.
+```bash
+cp src/owl-backend/.env.example src/owl-backend/.env
+# Edit .env and set OPENROUTER_API_KEY, NGROK_AUTHTOKEN, and optionally VITE_API_URL
+```
+
+Or set **RunPod environment variables** in the pod template: `OPENROUTER_API_KEY`, `NGROK_AUTHTOKEN`. The startup script sources `src/owl-backend/.env` when present.
 
 ## 2. Run everything
 

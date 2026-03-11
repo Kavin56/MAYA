@@ -24,11 +24,13 @@ packages/desktop/src-tauri/maya*
 # Server compiled binary
 packages/server/cli
 
-# Env
+# Env (never commit secrets)
 .env
 .env.*
 !.env.example
 !.env.local.example
+# RunPod/local secrets — create from .env.example, never commit
+src/owl-backend/runpod.env
 
 # Bun build artifacts
 *.bun-build
