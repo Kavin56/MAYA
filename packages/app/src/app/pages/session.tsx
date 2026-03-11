@@ -538,17 +538,6 @@ export default function SessionView(props: SessionViewProps) {
 
   const [batchedRenderedMessages, setBatchedRenderedMessages] = createSignal<MessageWithParts[]>(renderedMessages());
 
-  const messagesForList = createMemo(() => {
-    const list = batchedRenderedMessages();
-    const pending = props.lastPromptSent.trim();
-    if (!pending || runPhase() !== "sending") return list;
-    const optimisticUser: MessageWithParts = {
-      info: { id: "pending-user", role: "user" } as any,
-      parts: [{ type: "text", text: pending } as Part],
-    };
-    return [...list, optimisticUser];
-  });
-
   createEffect(() => {
     const next = renderedMessages();
     const sourceMessageCount = props.messages.length;
@@ -1133,6 +1122,17 @@ export default function SessionView(props: SessionViewProps) {
     if (status === "retry") return responseStarted() ? "responding" : "retrying";
     if (responseStarted()) return "responding";
     return "thinking";
+  });
+
+  const messagesForList = createMemo(() => {
+    const list = batchedRenderedMessages();
+    const pending = props.lastPromptSent.trim();
+    if (!pending || runPhase() !== "sending") return list;
+    const optimisticUser: MessageWithParts = {
+      info: { id: "pending-user", role: "user" } as any,
+      parts: [{ type: "text", text: pending } as Part],
+    };
+    return [...list, optimisticUser];
   });
 
   const showRunIndicator = createMemo(() => runPhase() !== "idle");

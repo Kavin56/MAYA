@@ -690,11 +690,29 @@ async function proxyOpencodeRequest(input: {
         const sessionId = sessionIdMatch ? sessionIdMatch[1] : null;
 
         if (sessionId) {
-          await fetchOpencodeJson(workspace, `/session/${sessionId}/prompt`, {
-            method: "POST",
-            body: { noReply: true, parts: [{ type: "text", text: resultText }] },
-          });
-          console.log(`[MAYA] Injected OWL response into session ${sessionId}`);
+          const injectBaseUrl = workspace.opencode?.baseUrl?.trim() ?? workspace.baseUrl?.trim() ?? "";
+          if (injectBaseUrl) {
+            const injectUrl = `${injectBaseUrl.replace(/\/$/, "")}/session/${sessionId}/prompt`;
+            const injectHeaders: Record<string, string> = { "Content-Type": "application/json" };
+            const clientAuth = input.request.headers.get("Authorization");
+            if (clientAuth) injectHeaders.Authorization = clientAuth;
+            const directory = resolveOpencodeDirectory(workspace);
+            if (directory) injectHeaders["x-opencode-directory"] = directory;
+            const injectRes = await fetch(injectUrl, {
+              method: "POST",
+              headers: injectHeaders,
+              body: JSON.stringify({ noReply: true, parts: [{ type: "text", text: resultText }] }),
+            });
+            if (!injectRes.ok) {
+              const errText = await injectRes.text();
+              console.error(`[MAYA] Inject failed ${injectRes.status}:`, errText);
+              return new Response(
+                JSON.stringify({ error: "Inject failed", status: injectRes.status, detail: errText }),
+                { status: 502, headers: { "Content-Type": "application/json" } }
+              );
+            }
+            console.log(`[MAYA] Injected OWL response into session ${sessionId}`);
+          }
         }
 
         return new Response(JSON.stringify({ ok: true, source: "owl" }), {
