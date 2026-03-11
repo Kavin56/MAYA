@@ -17,14 +17,14 @@ git clone https://github.com/Kavin56/MAYA.git /workspace/MAYA
 cd /workspace/MAYA
 ```
 
-**Secrets:** Never commit API keys. Create `src/owl-backend/.env` (gitignored) from the example:
+**Secrets:** The script loads `src/owl-backend/.env` **first** (before any defaults). Create it from the example:
 
 ```bash
 cp src/owl-backend/.env.example src/owl-backend/.env
-# Edit .env and set OPENROUTER_API_KEY, NGROK_AUTHTOKEN, and optionally VITE_API_URL
+# Edit .env: set OPENROUTER_API_KEY, NGROK_AUTHTOKEN, and NGROK_DOMAIN (your reserved ngrok domain)
 ```
 
-Or set **RunPod environment variables** in the pod template: `OPENROUTER_API_KEY`, `NGROK_AUTHTOKEN`. The startup script sources `src/owl-backend/.env` when present.
+Required in `.env` for ngrok tunnel: `NGROK_AUTHTOKEN`, and `NGROK_DOMAIN` (e.g. `nondetonating-cecile-nongrounded.ngrok-free.dev`). Or set these as RunPod pod environment variables.
 
 ## 2. Run everything
 
@@ -32,6 +32,18 @@ From the **project root** (e.g. `/workspace/MAYA`):
 
 ```bash
 chmod +x runpod-start.sh
+./runpod-start.sh
+```
+
+**If `git pull` says "local changes would be overwritten":** get the latest script and run:
+
+```bash
+cd /workspace/MAYA
+git checkout -- runpod-start.sh
+git pull origin master
+chmod +x runpod-start.sh
+pkill -f "ngrok http" || true
+sleep 2
 ./runpod-start.sh
 ```
 

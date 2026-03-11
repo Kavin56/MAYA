@@ -12,29 +12,24 @@
 
 set -e
 
-
-
-NGROK_DOMAIN="nondetonating-cecile-nongrounded.ngrok-free.dev"
-
-NGROK_AUTHTOKEN="3841GHziqbUnXfyEo7KhmabjLvm_QyAUhK2Qb2phjEK59T5o"
-
-SERVER_PORT=8787
-
-OPENCODE_PORT=4096
-
-
-
-# Load secrets from .env only (gitignored — never commit real keys)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OWL_ENV_DIR="$SCRIPT_DIR/src/owl-backend"
+SERVER_PORT=8787
+OPENCODE_PORT=4096
+
+# Load .env FIRST so NGROK_* and OPENROUTER_* from .env override any defaults below
 if [ -f "$OWL_ENV_DIR/.env" ]; then
   set -a
   source "$OWL_ENV_DIR/.env"
   set +a
   echo "[env] Loaded from src/owl-backend/.env"
 else
-  echo "[warn] No src/owl-backend/.env — copy .env.example to .env and set OPENROUTER_API_KEY (and NGROK_AUTHTOKEN), or set RunPod env vars"
+  echo "[warn] No src/owl-backend/.env — copy .env.example to .env and set OPENROUTER_API_KEY, NGROK_AUTHTOKEN, NGROK_DOMAIN"
 fi
+
+# Defaults only when not set by .env or RunPod env
+export NGROK_DOMAIN="${NGROK_DOMAIN:-nondetonating-cecile-nongrounded.ngrok-free.dev}"
+export NGROK_AUTHTOKEN="${NGROK_AUTHTOKEN:-}"
 
 
 
@@ -339,11 +334,11 @@ set -e
 if [ -z "$NGROK_AUTHTOKEN" ]; then
   echo "⚠️  NGROK_AUTHTOKEN not set — set it in src/owl-backend/.env or RunPod env. Skipping ngrok."
 else
-  # Stop any existing ngrok so this domain is free (ERR_NGROK_334: endpoint already online)
-  if command -v pkill &>/dev/null; then
-    pkill -f "ngrok http" 2>/dev/null || true
-    sleep 2
-  fi
+  # Stop ALL ngrok processes so this domain is free (ERR_NGROK_334: endpoint already online)
+  echo "  Stopping any existing ngrok..."
+  pkill -9 ngrok 2>/dev/null || true
+  killall -9 ngrok 2>/dev/null || true
+  sleep 4
   echo "▶ Starting ngrok tunnel → port $SERVER_PORT (url: https://$NGROK_DOMAIN)..."
   nohup ngrok http "$SERVER_PORT" --url="https://$NGROK_DOMAIN" >> /tmp/ngrok.log 2>&1 &
   NGROK_PID=$!
