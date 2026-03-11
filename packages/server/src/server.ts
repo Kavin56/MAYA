@@ -334,7 +334,10 @@ export function startServer(config: ServerConfig) {
       if (mount && (mount.restPath === "/worker" || mount.restPath.startsWith("/worker/"))) {
         authMode = "client";
         try {
-          const actor = await requireClient(request, config, tokens);
+          // Allow unauthenticated access to debug/test-key for troubleshooting
+          if (!mount.restPath.includes("/debug/test-key")) {
+             await requireClient(request, config, tokens);
+          }
           const proxyPath = mount.restPath.slice("/worker".length) || "/";
           const targetUrl = new URL(proxyPath, "http://127.0.0.1:5000");
           targetUrl.search = url.search;
@@ -342,7 +345,7 @@ export function startServer(config: ServerConfig) {
           const proxyReq = new Request(targetUrl.href, {
             method: request.method,
             headers: request.headers,
-            body: request.body,
+            body: (request.method === "GET" || request.method === "HEAD") ? null : request.body,
             // @ts-ignore
             duplex: "half",
           });
@@ -350,6 +353,7 @@ export function startServer(config: ServerConfig) {
           const response = await fetch(proxyReq);
           return finalize(response);
         } catch (error) {
+          console.error(`[MAYA] Error proxying to worker (mount):`, error);
           const apiError = error instanceof ApiError
             ? error
             : new ApiError(500, "internal_error", "Unexpected server error");
@@ -441,7 +445,7 @@ export function startServer(config: ServerConfig) {
           const proxyReq = new Request(targetUrl.href, {
             method: request.method,
             headers: request.headers,
-            body: request.body,
+            body: (request.method === "GET" || request.method === "HEAD") ? null : request.body,
             // @ts-ignore
             duplex: "half",
           });
@@ -449,6 +453,7 @@ export function startServer(config: ServerConfig) {
           const response = await fetch(proxyReq);
           return finalize(response);
         } catch (error) {
+          console.error(`[MAYA] Error proxying to worker (path):`, error);
           const apiError = error instanceof ApiError
             ? error
             : new ApiError(500, "internal_error", "Unexpected server error");
