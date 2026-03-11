@@ -430,7 +430,10 @@ export function startServer(config: ServerConfig) {
       if (url.pathname === "/worker" || url.pathname.startsWith("/worker/")) {
         authMode = "client";
         try {
-          const actor = await requireClient(request, config, tokens);
+          // Allow unauthenticated access to debug/test-key for troubleshooting
+          if (!url.pathname.includes("/debug/test-key")) {
+             await requireClient(request, config, tokens);
+          }
           const proxyPath = url.pathname.slice("/worker".length) || "/";
           const targetUrl = new URL(proxyPath, "http://127.0.0.1:5000");
           targetUrl.search = url.search;

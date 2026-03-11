@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
+import requests
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -55,6 +56,34 @@ class TaskRequest(BaseModel):
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "agent": "owl-worker", "camel_available": CAMEL_AVAILABLE}
+
+@app.get("/debug/test-key")
+async def test_key():
+    """Directly test the OpenRouter key without CAMEL-AI."""
+    if not OPENROUTER_API_KEY:
+        return {"status": "error", "message": "No API key found in worker environment."}
+    
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "google/gemini-2.0-flash-lite:free", # Using a free model for test
+        "messages": [{"role": "user", "content": "Hi"}],
+        "max_tokens": 10
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        return {
+            "status": "success" if response.status_code == 200 else "error",
+            "http_status": response.status_code,
+            "key_prefix": f"{OPENROUTER_API_KEY[:10]}...",
+            "response": response.json()
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.post("/task")
 async def run_task(req: TaskRequest):
