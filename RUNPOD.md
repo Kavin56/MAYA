@@ -49,6 +49,8 @@ If the OWL worker fails, check:
 tail -50 /tmp/owl-worker.log
 ```
 
+If the public URL shows **endpoint is offline (ERR_NGROK_3200)**, run `tail -30 /tmp/ngrok.log` on the pod and ensure `NGROK_AUTHTOKEN` and `NGROK_DOMAIN` are in `src/owl-backend/.env`. The script now starts ngrok with `nohup` so the tunnel stays up.
+
 ## 3. After it’s running
 
 - **Public URL:** printed at the end (e.g. `https://nondetonating-cecile-nongrounded.ngrok-free.dev`).

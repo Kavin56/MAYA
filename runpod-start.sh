@@ -278,19 +278,17 @@ sleep 3
 
 
 
-# Health check
-
+# Health check (don't exit so we still start ngrok and user can see logs)
+set +e
 if curl -sf "http://localhost:$SERVER_PORT/health" >/dev/null; then
-
   echo "  ✓ maya-server is healthy"
-
+  SERVER_OK=1
 else
-
   echo "  ✗ maya-server health check failed — check /tmp/maya-server.log"
-
   cat /tmp/maya-server.log
-
+  SERVER_OK=0
 fi
+set -e
 
 
 
@@ -338,22 +336,27 @@ set -e
 
 
 # ─── Start ngrok tunnel ───────────────────────────────────────────────────────
-
-echo "▶ Starting ngrok tunnel → port $SERVER_PORT..."
-
-ngrok http \
-
-  --domain="$NGROK_DOMAIN" \
-
-  "$SERVER_PORT" \
-
-  > /tmp/ngrok.log 2>&1 &
-
-NGROK_PID=$!
-
-echo "  ngrok PID: $NGROK_PID"
-
-sleep 2
+if [ -z "$NGROK_AUTHTOKEN" ]; then
+  echo "⚠️  NGROK_AUTHTOKEN not set — set it in src/owl-backend/.env or RunPod env. Skipping ngrok."
+else
+  # Stop any existing ngrok so this domain is free (ERR_NGROK_334: endpoint already online)
+  if command -v pkill &>/dev/null; then
+    pkill -f "ngrok http" 2>/dev/null || true
+    sleep 2
+  fi
+  echo "▶ Starting ngrok tunnel → port $SERVER_PORT (url: https://$NGROK_DOMAIN)..."
+  nohup ngrok http "$SERVER_PORT" --url="https://$NGROK_DOMAIN" >> /tmp/ngrok.log 2>&1 &
+  NGROK_PID=$!
+  disown $NGROK_PID 2>/dev/null || true
+  echo "  ngrok PID: $NGROK_PID (nohup — stays up if script exits)"
+  sleep 3
+  if ps -p $NGROK_PID > /dev/null 2>&1; then
+    echo "  ✓ ngrok is running. Check /tmp/ngrok.log if tunnel is unreachable."
+  else
+    echo "  ⚠️ ngrok exited — check /tmp/ngrok.log:"
+    tail -20 /tmp/ngrok.log
+  fi
+fi
 
 
 
