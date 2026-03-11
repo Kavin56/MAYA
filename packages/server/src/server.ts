@@ -298,6 +298,11 @@ export function startServer(config: ServerConfig) {
         return wrapped;
       };
 
+      // Handle CORS preflight first so browser requests (e.g. POST /worker/task) succeed
+      if (request.method.toUpperCase() === "OPTIONS") {
+        return finalize(new Response(null, { status: 204 }));
+      }
+
       // --- DEBUG & OWL WORKER ROUTES (ROOT & /worker) ---
       // These take precedence to allow easy troubleshooting
       if (url.pathname === "/ping") {

@@ -308,7 +308,7 @@ else
   ./venv/bin/pip install --upgrade pip -q
   ./venv/bin/pip install -r requirements.txt -q 2>/dev/null || ./venv/bin/pip install fastapi uvicorn pydantic python-dotenv requests -q
   ./venv/bin/pip install openai -q
-  ./venv/bin/pip install "camel-ai>=0.2.0" --no-deps -q 2>/dev/null || true
+  ./venv/bin/pip install "camel-ai[all]>=0.2.0" -q 2>/dev/null || true
   set -e
 
   echo "  Starting OWL backend (uvicorn 0.0.0.0:5000)..."

@@ -26,6 +26,8 @@ cp src/owl-backend/.env.example src/owl-backend/.env
 
 Required in `.env` for ngrok tunnel: `NGROK_AUTHTOKEN`, and `NGROK_DOMAIN` (e.g. `nondetonating-cecile-nongrounded.ngrok-free.dev`). Or set these as RunPod pod environment variables.
 
+**Frontend (remote workspace / chat):** To avoid 401 on health and chat, add the worker token in the app. Get it from `https://<your-ngrok-domain>/token` and paste it when connecting to the MAYA worker so requests include `Authorization: Bearer <token>`.
+
 ## 2. Run everything
 
 ### After you push code — on RunPod (copy-paste)
