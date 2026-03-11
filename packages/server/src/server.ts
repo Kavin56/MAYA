@@ -336,9 +336,10 @@ export function startServer(config: ServerConfig) {
           return finalize(response);
         } catch (error) {
           console.error(`[MAYA] Error proxying to worker (path):`, error);
-          const apiError = error instanceof ApiError
-            ? error
-            : new ApiError(500, "internal_error", "Unexpected server error");
+          const apiError =
+            error instanceof ApiError
+              ? error
+              : new ApiError(502, "worker_unreachable", "OWL worker is not running on port 5000");
           errorMessage = apiError.message;
           return finalize(jsonResponse(formatError(apiError), apiError.status));
         }
@@ -647,64 +648,62 @@ async function proxyOpencodeRequest(input: {
   const method = input.request.method.toUpperCase();
   let body: any = method === "GET" || method === "HEAD" ? undefined : input.request.body;
 
-  // MAYA OWL Integration: Intercept prompt_async calls and route to port 5000
+  // MAYA OWL Integration: Intercept prompt_async and route to OWL worker (OpenRouter); do not proxy to opencode
   if (method === "POST" && proxyPath.endsWith("/prompt_async") && workspace) {
-    console.log(`[MAYA] Intercepting prompt_async for session: ${proxyPath}`);
-
-    // Read the body into memory to avoid stream race conditions with the follow-up fetch
     const bodyText = await input.request.text();
-    body = bodyText; // Use the buffered body for the actual proxy fetch
+    try {
+      const parsedBody = JSON.parse(bodyText);
+      const promptText = parsedBody.parts?.find((p: any) => p.type === "text")?.text || "";
+      let targetModel = (parsedBody.model?.modelID || "google/gemini-2.5-flash").trim();
+      if (targetModel === "auto" || !targetModel || targetModel.includes("flash-lite") || targetModel.includes(":free")) {
+        targetModel = "google/gemini-2.5-flash";
+      }
+      if (targetModel.startsWith("byo:")) targetModel = targetModel.slice(4).trim() || "google/gemini-2.5-flash";
 
-    void (async () => {
-      try {
-        const parsedBody = JSON.parse(bodyText);
-
-        // Extract the prompt text and target model
-        const promptText = parsedBody.parts?.find((p: any) => p.type === "text")?.text || "";
-        const targetModel = parsedBody.model?.modelID || "auto";
-
-        if (!promptText) return;
-
+      if (!promptText) {
+        body = bodyText; // restore for opencode proxy
+      } else {
         console.log(`[MAYA] Forwarding prompt to OWL worker. Model: ${targetModel}, Prompt: ${promptText.substring(0, 50)}...`);
-
-        // Call the OWL backend on port 5000
         const owlResponse = await fetch("http://127.0.0.1:5000/task", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            prompt: promptText,
-            target_model: targetModel.startsWith("byo:") ? targetModel : `byo:${targetModel}`
-          }),
+          body: JSON.stringify({ prompt: promptText, target_model: targetModel }),
         });
 
         if (!owlResponse.ok) {
-          console.error(`[MAYA] OWL worker returned error: ${owlResponse.status}`);
-          return;
+          const errText = await owlResponse.text();
+          console.error(`[MAYA] OWL worker error ${owlResponse.status}:`, errText);
+          return new Response(
+            JSON.stringify({ error: "OWL worker error", status: owlResponse.status, detail: errText }),
+            { status: owlResponse.status, headers: { "Content-Type": "application/json" } }
+          );
         }
 
-        const owlData = await owlResponse.json();
-        const resultText = owlData.result || "No response content from OWL.";
-
-        console.log(`[MAYA] Received result from OWL, injecting back to OpenCode...`);
-
-        // Inject the response back into the OpenCode session using /prompt with noReply: true
+        const owlData = (await owlResponse.json()) as { result?: string };
+        const resultText = owlData.result ?? "No response from OWL.";
         const sessionIdMatch = proxyPath.match(/\/session\/([^/]+)\/prompt_async/);
         const sessionId = sessionIdMatch ? sessionIdMatch[1] : null;
 
         if (sessionId) {
           await fetchOpencodeJson(workspace, `/session/${sessionId}/prompt`, {
             method: "POST",
-            body: {
-              noReply: true,
-              parts: [{ type: "text", text: resultText }]
-            }
+            body: { noReply: true, parts: [{ type: "text", text: resultText }] },
           });
-          console.log(`[MAYA] Successfully injected OWL response into session ${sessionId}`);
+          console.log(`[MAYA] Injected OWL response into session ${sessionId}`);
         }
-      } catch (err) {
-        console.error(`[MAYA] Error in OWL interception logic:`, err);
+
+        return new Response(JSON.stringify({ ok: true, source: "owl" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-    })();
+    } catch (err) {
+      console.error(`[MAYA] OWL interception error:`, err);
+      return new Response(
+        JSON.stringify({ error: "OWL error", message: err instanceof Error ? err.message : String(err) }),
+        { status: 502, headers: { "Content-Type": "application/json" } }
+      );
+    }
   }
 
   try {

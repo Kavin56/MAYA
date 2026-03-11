@@ -3,7 +3,7 @@ import sys
 import logging
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -79,12 +79,23 @@ async def ping():
 async def health():
     return {"status": "ok", "agent": "owl-worker", "camel_available": CAMEL_AVAILABLE}
 
+def _normalize_model(model: str) -> str:
+    """Use a valid OpenRouter model; reject deprecated/invalid IDs."""
+    m = (model or "").strip()
+    if not m or "flash-lite" in m or ":free" in m or "2.0-flash-lite" in m:
+        return "google/gemini-2.5-flash"
+    if m.startswith("byo:"):
+        m = m[4:].strip()
+    return m or "google/gemini-2.5-flash"
+
+
 @app.get("/debug/test-key")
-async def test_key():
+async def test_key(model: str = Query(default="google/gemini-2.5-flash")):
     """Test the OpenRouter API key directly (no camel-ai required)."""
     if not OPENROUTER_API_KEY:
         return {"status": "error", "message": "No API key in worker environment"}
     try:
+        model_id = _normalize_model(model)
         resp = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
@@ -94,7 +105,7 @@ async def test_key():
                 "X-Title": "MAYA"
             },
             json={
-                "model": "google/gemini-2.0-flash-lite:free",
+                "model": model_id,
                 "messages": [{"role": "user", "content": "Say hi"}],
                 "max_tokens": 10
             },
@@ -104,6 +115,7 @@ async def test_key():
             "status": "success" if resp.status_code == 200 else "error",
             "http_status": resp.status_code,
             "key_prefix": f"{OPENROUTER_API_KEY[:10]}...",
+            "model": model_id,
             "response": resp.json()
         }
     except Exception as e:
@@ -198,7 +210,7 @@ async def run_task(req: TaskRequest):
     if not OPENROUTER_API_KEY:
         raise HTTPException(status_code=400, detail="OPENROUTER_API_KEY not configured")
 
-    model_id = req.target_model or "google/gemini-2.5-flash"
+    model_id = _normalize_model(req.target_model or "")
     logger.info(f"Task received — model={model_id}: {req.prompt[:80]}...")
 
     try:

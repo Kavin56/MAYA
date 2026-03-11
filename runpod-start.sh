@@ -319,7 +319,18 @@ else
 
   set +e
   if ps -p $OWL_PID > /dev/null 2>&1; then
-    echo "  ✓ OWL worker is running."
+    echo "  ✓ OWL worker process running; waiting for /ping..."
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+      if curl -sf http://127.0.0.1:5000/ping > /dev/null 2>&1; then
+        echo "  ✓ OWL worker reachable on port 5000."
+        break
+      fi
+      if [ "$i" -eq 20 ]; then
+        echo "  ⚠️ OWL /ping did not respond after 20 attempts — check /tmp/owl-worker.log"
+        tail -20 /tmp/owl-worker.log
+      fi
+      sleep 1
+    done
   else
     echo "  ⚠️ OWL worker failed to start — check /tmp/owl-worker.log:"
     tail -30 /tmp/owl-worker.log
