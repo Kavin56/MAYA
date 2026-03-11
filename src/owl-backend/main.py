@@ -14,6 +14,7 @@ try:
     from camel.types import ModelPlatformType, ModelType, RoleType
     from camel.societies.workforce import Workforce
     from camel.tasks import Task
+    from camel.configs import OpenRouterConfig
     CAMEL_AVAILABLE = True
 except ImportError:
     CAMEL_AVAILABLE = False
@@ -67,9 +68,12 @@ async def run_task(req: TaskRequest):
             actual_model_string = req.target_model[4:].strip()
             
         # Prepare the CAMEL-AI Model Factory configured strictly for OpenRouter
+        # Setting max_tokens to 1000 to prevent 402 Insufficient Credit errors
+        model_config = OpenRouterConfig(max_tokens=1000).as_dict()
         model = ModelFactory.create(
             model_platform=ModelPlatformType.OPENROUTER,
             model_type=actual_model_string,
+            model_config_dict=model_config,
         )
         
         # 2. Build the Multi-Agent Workforce
