@@ -653,18 +653,18 @@ async function proxyOpencodeRequest(input: {
   }
 
   const method = input.request.method.toUpperCase();
-  const body = method === "GET" || method === "HEAD" ? undefined : input.request.body;
+  let body: any = method === "GET" || method === "HEAD" ? undefined : input.request.body;
 
   // MAYA OWL Integration: Intercept prompt_async calls and route to port 5000
   if (method === "POST" && proxyPath.endsWith("/prompt_async") && workspace) {
     console.log(`[MAYA] Intercepting prompt_async for session: ${proxyPath}`);
 
-    // We run the intercept logic in the background to not block the OpenCode proxy
-    // but the prompt_async call itself is intended to be fire-and-forget anyway.
+    // Read the body into memory to avoid stream race conditions with the follow-up fetch
+    const bodyText = await input.request.text();
+    body = bodyText; // Use the buffered body for the actual proxy fetch
+
     void (async () => {
       try {
-        const clonedRequest = input.request.clone();
-        const bodyText = await clonedRequest.text();
         const parsedBody = JSON.parse(bodyText);
 
         // Extract the prompt text
@@ -691,7 +691,6 @@ async function proxyOpencodeRequest(input: {
         console.log(`[MAYA] Received result from OWL, injecting back to OpenCode...`);
 
         // Inject the response back into the OpenCode session using /prompt with noReply: true
-        // This makes the assistant message appear in the UI without triggering a new AI run.
         const sessionIdMatch = proxyPath.match(/\/session\/([^/]+)\/prompt_async/);
         const sessionId = sessionIdMatch ? sessionIdMatch[1] : null;
 
