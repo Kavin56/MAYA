@@ -50,9 +50,15 @@ echo ""
 
 # ─── 0. Cleanup old instances ────────────────────────────────────────────────
 echo "[0/5] Cleaning up existing services..."
-fuser -k 8787/tcp 2>/dev/null || true
-fuser -k 4096/tcp 2>/dev/null || true
-fuser -k 8000/tcp 2>/dev/null || true # owl-backend
+
+# Ensure fuser is installed
+if ! command -v fuser &>/dev/null; then
+  apt-get update -qq && apt-get install -y psmisc -qq
+fi
+
+# Kill anything on our ports
+fuser -k 8787/tcp 4096/tcp 8000/tcp 2>/dev/null || true
+sleep 2 # Give OS time to release ports
 echo "      Done."
 
 # ─── 1. Install Bun ──────────────────────────────────────────────────────────
