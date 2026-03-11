@@ -334,18 +334,20 @@ export function startServer(config: ServerConfig) {
       if (mount && (mount.restPath === "/worker" || mount.restPath.startsWith("/worker/"))) {
         authMode = "client";
         try {
-          // Allow unauthenticated access to debug/test-key for troubleshooting
-          if (!mount.restPath.includes("/debug/test-key")) {
+          // Allow unauthenticated access to debug endpoints for troubleshooting
+          const isDebug = mount.restPath.includes("/debug/test-key") || mount.restPath.includes("/ping");
+          if (!isDebug) {
              await requireClient(request, config, tokens);
           }
           const proxyPath = mount.restPath.slice("/worker".length) || "/";
           const targetUrl = new URL(proxyPath, "http://127.0.0.1:5000");
           targetUrl.search = url.search;
 
+          const method = request.method.toUpperCase();
           const proxyReq = new Request(targetUrl.href, {
             method: request.method,
             headers: request.headers,
-            body: (request.method === "GET" || request.method === "HEAD") ? null : request.body,
+            body: (method === "GET" || method === "HEAD") ? null : request.body,
             // @ts-ignore
             duplex: "half",
           });
@@ -361,7 +363,6 @@ export function startServer(config: ServerConfig) {
           return finalize(jsonResponse(formatError(apiError), apiError.status));
         }
       }
-
       if (mount && (mount.restPath === "/opencode-router" || mount.restPath.startsWith("/opencode-router/"))) {
         const policy = resolveOpenCodeRouterProxyPolicy(request.method, mount.restPath);
         authMode = policy.auth;

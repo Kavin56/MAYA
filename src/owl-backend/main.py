@@ -37,6 +37,8 @@ if OPENROUTER_API_KEY:
     # Masked logging for debugging (only showing prefix and suffix)
     key_display = f"{OPENROUTER_API_KEY[:10]}...{OPENROUTER_API_KEY[-4:]}" if len(OPENROUTER_API_KEY) > 15 else "INVALID_LENGTH"
     print(f"[OWL] Loaded API Key: {key_display} (Length: {len(OPENROUTER_API_KEY)})")
+    if len(OPENROUTER_API_KEY) < 20:
+        print(f"[OWL] WARNING: API Key seems too short ({len(OPENROUTER_API_KEY)})! Check .env")
 else:
     print("[OWL] WARNING: OPENROUTER_API_KEY not found in environment!")
     # Check if .env exists in current directory as well
@@ -60,6 +62,11 @@ class TaskRequest(BaseModel):
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "agent": "owl-worker", "camel_available": CAMEL_AVAILABLE}
+
+@app.get("/ping")
+async def ping():
+    """Simple ping to verify proxy connectivity."""
+    return {"message": "pong", "loaded_key_length": len(OPENROUTER_API_KEY) if OPENROUTER_API_KEY else 0}
 
 @app.get("/debug/test-key")
 async def test_key():
