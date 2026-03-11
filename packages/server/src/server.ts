@@ -654,6 +654,63 @@ async function proxyOpencodeRequest(input: {
 
   const method = input.request.method.toUpperCase();
   const body = method === "GET" || method === "HEAD" ? undefined : input.request.body;
+
+  // MAYA OWL Integration: Intercept prompt_async calls and route to port 5000
+  if (method === "POST" && proxyPath.endsWith("/prompt_async") && workspace) {
+    console.log(`[MAYA] Intercepting prompt_async for session: ${proxyPath}`);
+
+    // We run the intercept logic in the background to not block the OpenCode proxy
+    // but the prompt_async call itself is intended to be fire-and-forget anyway.
+    void (async () => {
+      try {
+        const clonedRequest = input.request.clone();
+        const bodyText = await clonedRequest.text();
+        const parsedBody = JSON.parse(bodyText);
+
+        // Extract the prompt text
+        const promptText = parsedBody.parts?.find((p: any) => p.type === "text")?.text || "";
+        if (!promptText) return;
+
+        console.log(`[MAYA] Forwarding prompt to OWL worker: ${promptText.substring(0, 50)}...`);
+
+        // Call the OWL backend on port 5000
+        const owlResponse = await fetch("http://127.0.0.1:5000/task", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: promptText }),
+        });
+
+        if (!owlResponse.ok) {
+          console.error(`[MAYA] OWL worker returned error: ${owlResponse.status}`);
+          return;
+        }
+
+        const owlData = await owlResponse.json();
+        const resultText = owlData.result || "No response content from OWL.";
+
+        console.log(`[MAYA] Received result from OWL, injecting back to OpenCode...`);
+
+        // Inject the response back into the OpenCode session using /prompt with noReply: true
+        // This makes the assistant message appear in the UI without triggering a new AI run.
+        const sessionIdMatch = proxyPath.match(/\/session\/([^/]+)\/prompt_async/);
+        const sessionId = sessionIdMatch ? sessionIdMatch[1] : null;
+
+        if (sessionId) {
+          await fetchOpencodeJson(workspace, `/session/${sessionId}/prompt`, {
+            method: "POST",
+            body: {
+              noReply: true,
+              parts: [{ type: "text", text: resultText }]
+            }
+          });
+          console.log(`[MAYA] Successfully injected OWL response into session ${sessionId}`);
+        }
+      } catch (err) {
+        console.error(`[MAYA] Error in OWL interception logic:`, err);
+      }
+    })();
+  }
+
   try {
     const response = await fetch(targetUrl, {
       method,
