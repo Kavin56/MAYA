@@ -279,9 +279,9 @@ echo "  Checking/Installing Python dependencies..."
 ./venv/bin/pip install --upgrade pip >> /tmp/owl-install.log 2>&1
 ./venv/bin/pip install -r requirements.txt >> /tmp/owl-install.log 2>&1
 
-echo "  Starting OWL backend with uvicorn..."
-# Use full path to uvicorn from venv to be absolutely sure
-nohup ./venv/bin/uvicorn main:app --host 0.0.0.0 --port 5000 > /tmp/owl-worker.log 2>&1 &
+echo "  Starting OWL backend with Python..."
+# Use Python from venv to run main.py directly (which calls uvicorn.run)
+nohup ./venv/bin/python main.py > /tmp/owl-worker.log 2>&1 &
 
 OWL_PID=$!
 echo "  OWL worker PID: $OWL_PID"
