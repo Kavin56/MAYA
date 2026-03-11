@@ -1,20 +1,42 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import os
 import requests
+import sys
+import logging
 from dotenv import load_dotenv
 
+# Set up logging to file and console
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler("/tmp/owl-worker.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger("OWL")
+
+logger.info("=== OWL Worker Starting up ===")
+logger.info(f"CWD: {os.getcwd()}")
+logger.info(f"Python: {sys.version}")
+
 # Load environment variables from .env file
-print(f"[OWL] Current Working Directory: {os.getcwd()}")
 dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
-print(f"[OWL] Loading .env from: {dotenv_path}")
+logger.info(f"Loading .env from: {dotenv_path}")
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path, override=True)
 else:
-    print(f"[OWL] WARNING: .env file NOT FOUND at {dotenv_path}")
-    # Fallback to current directory
+    logger.warning(f".env file NOT FOUND at {dotenv_path}")
     load_dotenv(override=True)
+
+try:
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from pydantic import BaseModel
+    import uvicorn
+    logger.info("Base dependencies loaded successfully (FastAPI, uvicorn)")
+except ImportError as e:
+    logger.error(f"Failed to load base dependencies: {e}")
+    sys.exit(1)
 
 try:
     from camel.agents import ChatAgent
@@ -25,7 +47,9 @@ try:
     from camel.tasks import Task
     from camel.configs import OpenRouterConfig
     CAMEL_AVAILABLE = True
-except ImportError:
+    logger.info("CAMEL-AI dependencies loaded successfully")
+except ImportError as e:
+    logger.error(f"CAMEL-AI not available: {e}")
     CAMEL_AVAILABLE = False
     
 # Initialize OpenRouter API keys if available
@@ -36,14 +60,14 @@ if OPENROUTER_API_KEY:
     
     # Masked logging for debugging (only showing prefix and suffix)
     key_display = f"{OPENROUTER_API_KEY[:10]}...{OPENROUTER_API_KEY[-4:]}" if len(OPENROUTER_API_KEY) > 15 else "INVALID_LENGTH"
-    print(f"[OWL] Loaded API Key: {key_display} (Length: {len(OPENROUTER_API_KEY)})")
+    logger.info(f"Loaded API Key: {key_display} (Length: {len(OPENROUTER_API_KEY)})")
     if len(OPENROUTER_API_KEY) < 20:
-        print(f"[OWL] WARNING: API Key seems too short ({len(OPENROUTER_API_KEY)})! Check .env")
+        logger.warning(f"API Key seems too short ({len(OPENROUTER_API_KEY)})! Check .env")
 else:
-    print("[OWL] WARNING: OPENROUTER_API_KEY not found in environment!")
+    logger.warning("OPENROUTER_API_KEY not found in environment!")
     # Check if .env exists in current directory as well
     if os.path.exists(".env"):
-        print("[OWL] Found .env file, but key not loaded. Check file encoding/content.")
+        logger.info("Found .env file, but key not loaded. Check file encoding/content.")
 
 app = FastAPI(title="MAYA OWL Remote Worker")
 
@@ -128,6 +152,7 @@ async def run_task(req: TaskRequest):
         # Prepare the CAMEL-AI Model Factory configured strictly for OpenRouter
         # Setting max_tokens to 1000 to prevent 402 Insufficient Credit errors
         # Simplified headers to match working test.py
+        logger.info(f"Creating OpenRouterModel for {actual_model_string}...")
         model_config = OpenRouterConfig(
             max_tokens=1000
         ).as_dict()
@@ -139,7 +164,11 @@ async def run_task(req: TaskRequest):
         )
         
         # 2. Build the Multi-Agent Workforce
-        workforce = Workforce("MAYA OWL Local/Remote Workforce")
+        logger.info("Building workforce with Orchestrator, Researcher, and Developer...")
+        workforce = Workforce(
+            id="maya_workforce",
+            description="Multi-agent workforce to solve development tasks."
+        )
         
         # Orchestrator (master agent)
         sys_msg = BaseMessage.make_assistant_message(

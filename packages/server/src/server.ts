@@ -468,6 +468,17 @@ export function startServer(config: ServerConfig) {
         return finalize(jsonResponse({ token: config.token, source: "env" }));
       }
 
+      if (url.pathname === "/ping") {
+        try {
+          const targetUrl = new URL("/ping", "http://127.0.0.1:5000");
+          const response = await fetch(targetUrl.href);
+          return finalize(response);
+        } catch (error) {
+          console.error(`[MAYA] Error proxying to worker (root ping):`, error);
+          return finalize(jsonResponse({ code: "worker_unreachable", message: "OWL worker is not running on port 5000" }, 502));
+        }
+      }
+
       if (url.pathname === "/opencode-router" || url.pathname.startsWith("/opencode-router/")) {
         const policy = resolveOpenCodeRouterProxyPolicy(request.method, url.pathname);
         authMode = policy.auth;
