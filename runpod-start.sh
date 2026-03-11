@@ -134,12 +134,18 @@ cd /workspace/MAYA/src/owl-backend
 
 if [ ! -d "venv" ]; then
   echo "  Creating Python virtual environment..."
-  python3 -m venv venv >> /tmp/owl-install.log 2>&1
+  python3 -m venv venv
 fi
 
-echo "  Installing Python dependencies..."
-./venv/bin/pip install --upgrade pip >> /tmp/owl-install.log 2>&1
-./venv/bin/pip install -r requirements.txt >> /tmp/owl-install.log 2>&1
+echo "  Installing Python dependencies (this may take several minutes)..."
+# Disable set -e temporarily so pip failures don't kill the script
+set +e
+./venv/bin/pip install --upgrade pip -q
+./venv/bin/pip install fastapi==0.104.1 uvicorn==0.24.0 pydantic==2.5.0 python-dotenv==1.0.0 requests -q
+./venv/bin/pip install openai -q
+./venv/bin/pip install duckduckgo-search -q
+./venv/bin/pip install "camel-ai[all]" -q
+set -e
 
 echo "  Starting OWL backend..."
 nohup ./venv/bin/python main.py > /tmp/owl-worker.log 2>&1 &
@@ -147,12 +153,14 @@ OWL_PID=$!
 echo "  OWL worker PID: $OWL_PID"
 sleep 3
 
+set +e
 if ps -p $OWL_PID > /dev/null 2>&1; then
   echo "  ✓ OWL worker is running."
 else
-  echo "  ⚠️ OWL worker failed to start! Log:"
+  echo "  ⚠️ OWL worker failed to start! Log output:"
   cat /tmp/owl-worker.log
 fi
+set -e
 
 cd /workspace/MAYA
 set -e
