@@ -26,12 +26,17 @@ except ImportError:
 # Initialize OpenRouter API keys if available
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 if OPENROUTER_API_KEY:
-    OPENROUTER_API_KEY = OPENROUTER_API_KEY.strip().replace('"', '').replace("'", "")
+    # Aggressive stripping of ANY hidden characters or quotes
+    OPENROUTER_API_KEY = OPENROUTER_API_KEY.strip().strip('"').strip("'").strip()
+    
     # Masked logging for debugging (only showing prefix and suffix)
     key_display = f"{OPENROUTER_API_KEY[:10]}...{OPENROUTER_API_KEY[-4:]}" if len(OPENROUTER_API_KEY) > 15 else "INVALID_LENGTH"
-    print(f"[OWL] Loaded API Key: {key_display}")
+    print(f"[OWL] Loaded API Key: {key_display} (Length: {len(OPENROUTER_API_KEY)})")
 else:
     print("[OWL] WARNING: OPENROUTER_API_KEY not found in environment!")
+    # Check if .env exists in current directory as well
+    if os.path.exists(".env"):
+        print("[OWL] Found .env file, but key not loaded. Check file encoding/content.")
 
 app = FastAPI(title="MAYA OWL Remote Worker")
 
@@ -82,15 +87,9 @@ async def run_task(req: TaskRequest):
             
         # Prepare the CAMEL-AI Model Factory configured strictly for OpenRouter
         # Setting max_tokens to 1000 to prevent 402 Insufficient Credit errors
-        # Adding explicitly the api_key to avoid 401 errors from environment issues
-        print(f"[OWL] Creating OpenRouterModel for {actual_model_string} with key prefix {OPENROUTER_API_KEY[:6] if OPENROUTER_API_KEY else 'NONE'}")
-        
+        # Simplified headers to match working test.py
         model_config = OpenRouterConfig(
-            max_tokens=1000,
-            extra_headers={
-                "HTTP-Referer": "https://maya.ai",
-                "X-Title": "MAYA OWL",
-            }
+            max_tokens=1000
         ).as_dict()
 
         model = OpenRouterModel(
