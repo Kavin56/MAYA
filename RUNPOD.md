@@ -54,9 +54,9 @@ chmod +x runpod-start.sh
 This will:
 
 1. Install Bun, ngrok, and project deps if needed.
-2. Start **opencode** on port 4096 (if `opencode` is in PATH).
-3. Start **maya-server** on port 8787.
-4. Start **ngrok** tunnel (right after server health check) so the public URL is up early.
+2. **Start ngrok tunnel FIRST** (so you see "NGROK TUNNEL IS RUNNING" or "NGROK FAILED" in the terminal before anything else).
+3. Start **opencode** on port 4096 (if `opencode` is in PATH).
+4. Start **maya-server** on port 8787.
 5. Start **OWL worker** on port 5000 (from `src/owl-backend`).
 
 If the public URL shows **endpoint is offline (ERR_NGROK_3200)**:
