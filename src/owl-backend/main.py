@@ -5,7 +5,11 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+else:
+    load_dotenv()
 
 try:
     from camel.agents import ChatAgent
@@ -21,6 +25,8 @@ except ImportError:
     
 # Initialize OpenRouter API keys if available
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+if OPENROUTER_API_KEY:
+    OPENROUTER_API_KEY = OPENROUTER_API_KEY.strip().replace('"', '').replace("'", "")
 
 app = FastAPI(title="MAYA OWL Remote Worker")
 
@@ -56,6 +62,8 @@ async def run_task(req: TaskRequest):
             raise HTTPException(status_code=400, detail="OPENROUTER_API_KEY is not configured in the backend environment.")
             
         os.environ["OPENROUTER_API_KEY"] = OPENROUTER_API_KEY
+        os.environ["OPENAI_API_KEY"] = OPENROUTER_API_KEY  # Fallback for some CAMEL components
+        os.environ["OPENAI_API_BASE"] = "https://openrouter.ai/api/v1"
             
         # 1. Determine the Model
         #    If "auto", we use a strong reasoning model to orchestrate. 
@@ -69,7 +77,14 @@ async def run_task(req: TaskRequest):
             
         # Prepare the CAMEL-AI Model Factory configured strictly for OpenRouter
         # Setting max_tokens to 1000 to prevent 402 Insufficient Credit errors
-        model_config = OpenRouterConfig(max_tokens=1000).as_dict()
+        # Adding required OpenRouter headers for better compatibility
+        model_config = OpenRouterConfig(
+            max_tokens=1000,
+            extra_headers={
+                "HTTP-Referer": "https://maya.ai",
+                "X-Title": "MAYA OWL",
+            }
+        ).as_dict()
         model = ModelFactory.create(
             model_platform=ModelPlatformType.OPENROUTER,
             model_type=actual_model_string,
