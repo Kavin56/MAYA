@@ -48,6 +48,8 @@ Read INFRASTRUCTURE.md
 
 ## Agent Guidelines for development
 
+* **Commit and push after changes:** When you change any file in this repo, commit and push to git so RunPod (and others) can pull the latest. Run: `git add <files>`, `git commit -m "..."`, `git push origin master`.
+
 * **Purpose-first UI**: prioritize clarity, safety, and approachability for non-technical users.
 * **Parity with OpenCode**: anything the UI can do must map cleanly to OpenCode tools.
 * **Prefer OpenCode primitives**: represent concepts using OpenCode's native surfaces first (folders/projects, `.opencode`, `opencode.json`, skills, plugins) before introducing new abstractions.

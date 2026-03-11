@@ -28,22 +28,26 @@ Required in `.env` for ngrok tunnel: `NGROK_AUTHTOKEN`, and `NGROK_DOMAIN` (e.g.
 
 ## 2. Run everything
 
-From the **project root** (e.g. `/workspace/MAYA`):
+### RunPod run script (copy-paste every time)
 
-```bash
-chmod +x runpod-start.sh
-./runpod-start.sh
-```
-
-**If `git pull` says "local changes would be overwritten":** get the latest script and run:
+From the **project root** on the pod (e.g. `/workspace/MAYA`), run this block to pull latest and start:
 
 ```bash
 cd /workspace/MAYA
 git checkout -- runpod-start.sh
 git pull origin master
 chmod +x runpod-start.sh
-pkill -f "ngrok http" || true
-sleep 2
+pkill -9 ngrok 2>/dev/null || true
+sleep 4
+./runpod-start.sh
+```
+
+Or, after the first time you have `runpod-run.sh` in the repo, just run: `./runpod-run.sh`
+
+**First run only** (no git conflict):
+
+```bash
+chmod +x runpod-start.sh
 ./runpod-start.sh
 ```
 
@@ -52,16 +56,16 @@ This will:
 1. Install Bun, ngrok, and project deps if needed.
 2. Start **opencode** on port 4096 (if `opencode` is in PATH).
 3. Start **maya-server** on port 8787.
-4. Start **OWL worker** on port 5000 (from `src/owl-backend`).
-5. Start **ngrok** tunneling 8787 to the public URL.
+4. Start **ngrok** tunnel (right after server health check) so the public URL is up early.
+5. Start **OWL worker** on port 5000 (from `src/owl-backend`).
 
-If the OWL worker fails, check:
+If the public URL shows **endpoint is offline (ERR_NGROK_3200)**:
 
-```bash
-tail -50 /tmp/owl-worker.log
-```
+- Ensure you have the latest script: `git checkout -- runpod-start.sh && git pull origin master`
+- Ensure `src/owl-backend/.env` contains `NGROK_AUTHTOKEN` and `NGROK_DOMAIN` (no quotes, no spaces around `=`).
+- On the pod run: `tail -30 /tmp/ngrok.log` — if you see `ERR_NGROK_334` (endpoint already online), run `pkill -9 ngrok; sleep 4` then `./runpod-start.sh` again.
 
-If the public URL shows **endpoint is offline (ERR_NGROK_3200)**, run `tail -30 /tmp/ngrok.log` on the pod and ensure `NGROK_AUTHTOKEN` and `NGROK_DOMAIN` are in `src/owl-backend/.env`. The script now starts ngrok with `nohup` so the tunnel stays up.
+If the OWL worker fails, check: `tail -50 /tmp/owl-worker.log`
 
 ## 3. After it’s running
 

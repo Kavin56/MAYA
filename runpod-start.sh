@@ -94,13 +94,14 @@ fi
 
 
 
-# ─── 3. Authenticate ngrok ───────────────────────────────────────────────────
-
-echo "[3/5] Configuring ngrok authtoken..."
-
-ngrok config add-authtoken "$NGROK_AUTHTOKEN"
-
-echo "      ngrok authenticated."
+# ─── 3. Authenticate ngrok (only if token set) ─────────────────────────────────
+echo "[3/5] Configuring ngrok..."
+if [ -n "$NGROK_AUTHTOKEN" ]; then
+  ngrok config add-authtoken "$NGROK_AUTHTOKEN"
+  echo "      ngrok authenticated."
+else
+  echo "      [warn] NGROK_AUTHTOKEN empty — set in src/owl-backend/.env; tunnel will be skipped."
+fi
 
 
 
@@ -285,7 +286,28 @@ else
 fi
 set -e
 
-
+# ─── Start ngrok tunnel (right after server is up so tunnel is ready early) ────
+if [ -z "$NGROK_AUTHTOKEN" ]; then
+  echo "  [skip] ngrok tunnel — NGROK_AUTHTOKEN not set in .env"
+else
+  echo "  Stopping any existing ngrok..."
+  pkill -9 ngrok 2>/dev/null || true
+  killall -9 ngrok 2>/dev/null || true
+  sleep 4
+  echo "▶ Starting ngrok tunnel → port $SERVER_PORT (https://$NGROK_DOMAIN)..."
+  set +e
+  nohup ngrok http "$SERVER_PORT" --url="https://$NGROK_DOMAIN" >> /tmp/ngrok.log 2>&1 &
+  NGROK_PID=$!
+  disown $NGROK_PID 2>/dev/null || true
+  sleep 3
+  if ps -p $NGROK_PID > /dev/null 2>&1; then
+    echo "  ✓ ngrok tunnel running (PID $NGROK_PID)"
+  else
+    echo "  ⚠️ ngrok exited — see: tail -30 /tmp/ngrok.log"
+    tail -15 /tmp/ngrok.log
+  fi
+  set -e
+fi
 
 # ─── Start OWL Python Worker on port 5000 ────────────────────────────────────
 OWL_DIR="$PROJECT_ROOT/src/owl-backend"
@@ -327,33 +349,6 @@ else
 fi
 
 set -e
-
-
-
-# ─── Start ngrok tunnel ───────────────────────────────────────────────────────
-if [ -z "$NGROK_AUTHTOKEN" ]; then
-  echo "⚠️  NGROK_AUTHTOKEN not set — set it in src/owl-backend/.env or RunPod env. Skipping ngrok."
-else
-  # Stop ALL ngrok processes so this domain is free (ERR_NGROK_334: endpoint already online)
-  echo "  Stopping any existing ngrok..."
-  pkill -9 ngrok 2>/dev/null || true
-  killall -9 ngrok 2>/dev/null || true
-  sleep 4
-  echo "▶ Starting ngrok tunnel → port $SERVER_PORT (url: https://$NGROK_DOMAIN)..."
-  nohup ngrok http "$SERVER_PORT" --url="https://$NGROK_DOMAIN" >> /tmp/ngrok.log 2>&1 &
-  NGROK_PID=$!
-  disown $NGROK_PID 2>/dev/null || true
-  echo "  ngrok PID: $NGROK_PID (nohup — stays up if script exits)"
-  sleep 3
-  if ps -p $NGROK_PID > /dev/null 2>&1; then
-    echo "  ✓ ngrok is running. Check /tmp/ngrok.log if tunnel is unreachable."
-  else
-    echo "  ⚠️ ngrok exited — check /tmp/ngrok.log:"
-    tail -20 /tmp/ngrok.log
-  fi
-fi
-
-
 
 echo ""
 
