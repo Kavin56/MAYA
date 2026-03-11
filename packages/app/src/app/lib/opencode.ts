@@ -184,6 +184,12 @@ export function createClient(
       headers.Authorization = authHeader;
     }
   }
+  // #region agent log
+  try {
+    const hasAuth = Boolean(auth?.token && auth?.mode === "openwork");
+    fetch('http://127.0.0.1:7242/ingest/c88f07d5-0f01-46c3-ba3e-034808f0bae7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'opencode.ts:createClient',message:'createClient',data:{hasAuth,baseUrlPrefix:(baseUrl||'').slice(0,60)},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+  } catch (_) {}
+  // #endregion
 
   const fetchImpl = isTauriRuntime()
     ? createTauriFetch(auth)

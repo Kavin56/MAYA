@@ -885,6 +885,12 @@ async function requestJson<T>(
   path: string,
   options: { method?: string; token?: string; hostToken?: string; body?: unknown; timeoutMs?: number } = {},
 ): Promise<T> {
+  // #region agent log
+  try {
+    const hasToken = Boolean(options.token?.trim());
+    fetch('http://127.0.0.1:7242/ingest/c88f07d5-0f01-46c3-ba3e-034808f0bae7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'openwork-server.ts:requestJson',message:'requestJson',data:{hasToken,path:(path||'').slice(0,80)},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+  } catch (_) {}
+  // #endregion
   const url = `${baseUrl}${path}`;
   const fetchImpl = resolveFetch();
   const response = await fetchWithTimeout(
@@ -999,10 +1005,18 @@ async function requestBinary(
   return { data, contentType, filename };
 }
 
-export function createOpenworkServerClient(options: { baseUrl: string; token?: string; hostToken?: string }) {
+export function createOpenworkServerClient(options: {
+  baseUrl: string;
+  token?: string;
+  hostToken?: string;
+  /** Resolve token at request time so auth is never stale (e.g. after async token fetch). */
+  getToken?: () => string | undefined;
+}) {
   const baseUrl = options.baseUrl.replace(/\/+$/, "");
   const token = options.token;
   const hostToken = options.hostToken;
+  const getToken = options.getToken;
+  const resolveToken = () => (getToken?.()?.trim() || token?.trim() || undefined);
 
   const timeouts = {
     health: 3_000,
@@ -1021,53 +1035,55 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
 
   return {
     baseUrl,
-    token,
+    get token() {
+      return resolveToken();
+    },
     health: () =>
-      requestJson<{ ok: boolean; version: string; uptimeMs: number }>(baseUrl, "/health", { token, hostToken, timeoutMs: timeouts.health }),
-    status: () => requestJson<OpenworkServerDiagnostics>(baseUrl, "/status", { token, hostToken, timeoutMs: timeouts.status }),
-    capabilities: () => requestJson<OpenworkServerCapabilities>(baseUrl, "/capabilities", { token, hostToken, timeoutMs: timeouts.capabilities }),
+      requestJson<{ ok: boolean; version: string; uptimeMs: number }>(baseUrl, "/health", { token: resolveToken(), hostToken, timeoutMs: timeouts.health }),
+    status: () => requestJson<OpenworkServerDiagnostics>(baseUrl, "/status", { token: resolveToken(), hostToken, timeoutMs: timeouts.status }),
+    capabilities: () => requestJson<OpenworkServerCapabilities>(baseUrl, "/capabilities", { token: resolveToken(), hostToken, timeoutMs: timeouts.capabilities }),
     opencodeRouterHealth: () =>
-      requestJsonRaw<OpenworkOpenCodeRouterHealthSnapshot>(baseUrl, "/opencode-router/health", { token, hostToken, timeoutMs: timeouts.opencodeRouter }),
+      requestJsonRaw<OpenworkOpenCodeRouterHealthSnapshot>(baseUrl, "/opencode-router/health", { token: resolveToken(), hostToken, timeoutMs: timeouts.opencodeRouter }),
     opencodeRouterBindings: (filters?: { channel?: string; identityId?: string }) => {
       const search = new URLSearchParams();
       if (filters?.channel?.trim()) search.set("channel", filters.channel.trim());
       if (filters?.identityId?.trim()) search.set("identityId", filters.identityId.trim());
       const suffix = search.toString();
       const path = suffix ? `/opencode-router/bindings?${suffix}` : "/opencode-router/bindings";
-      return requestJsonRaw<OpenworkOpenCodeRouterBindingsResult>(baseUrl, path, { token, hostToken, timeoutMs: timeouts.opencodeRouter });
+      return requestJsonRaw<OpenworkOpenCodeRouterBindingsResult>(baseUrl, path, { token: resolveToken(), hostToken, timeoutMs: timeouts.opencodeRouter });
     },
     opencodeRouterTelegramIdentities: () =>
-      requestJsonRaw<OpenworkOpenCodeRouterTelegramIdentitiesResult>(baseUrl, "/opencode-router/identities/telegram", { token, hostToken, timeoutMs: timeouts.opencodeRouter }),
+      requestJsonRaw<OpenworkOpenCodeRouterTelegramIdentitiesResult>(baseUrl, "/opencode-router/identities/telegram", { token: resolveToken(), hostToken, timeoutMs: timeouts.opencodeRouter }),
     opencodeRouterSlackIdentities: () =>
-      requestJsonRaw<OpenworkOpenCodeRouterSlackIdentitiesResult>(baseUrl, "/opencode-router/identities/slack", { token, hostToken, timeoutMs: timeouts.opencodeRouter }),
-    listWorkspaces: () => requestJson<OpenworkWorkspaceList>(baseUrl, "/workspaces", { token, hostToken, timeoutMs: timeouts.listWorkspaces }),
+      requestJsonRaw<OpenworkOpenCodeRouterSlackIdentitiesResult>(baseUrl, "/opencode-router/identities/slack", { token: resolveToken(), hostToken, timeoutMs: timeouts.opencodeRouter }),
+    listWorkspaces: () => requestJson<OpenworkWorkspaceList>(baseUrl, "/workspaces", { token: resolveToken(), hostToken, timeoutMs: timeouts.listWorkspaces }),
     activateWorkspace: (workspaceId: string) =>
       requestJson<{ activeId: string; workspace: OpenworkWorkspaceInfo }>(
         baseUrl,
         `/workspaces/${encodeURIComponent(workspaceId)}/activate`,
-        { token, hostToken, method: "POST", timeoutMs: timeouts.activateWorkspace },
+        { token: resolveToken(), hostToken, method: "POST", timeoutMs: timeouts.activateWorkspace },
       ),
     deleteWorkspace: (workspaceId: string) =>
       requestJson<{ ok: boolean; deleted: boolean; persisted: boolean; activeId: string | null; items: OpenworkWorkspaceInfo[] }>(
         baseUrl,
         `/workspaces/${encodeURIComponent(workspaceId)}`,
-        { token, hostToken, method: "DELETE", timeoutMs: timeouts.deleteWorkspace },
+        { token: resolveToken(), hostToken, method: "DELETE", timeoutMs: timeouts.deleteWorkspace },
       ),
     deleteSession: (workspaceId: string, sessionId: string) =>
       requestJson<{ ok: boolean }>(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/sessions/${encodeURIComponent(sessionId)}`,
-        { token, hostToken, method: "DELETE", timeoutMs: timeouts.deleteSession },
+        { token: resolveToken(), hostToken, method: "DELETE", timeoutMs: timeouts.deleteSession },
       ),
     exportWorkspace: (workspaceId: string) =>
       requestJson<OpenworkWorkspaceExport>(baseUrl, `/workspace/${encodeURIComponent(workspaceId)}/export`, {
-        token,
+        token: resolveToken(),
         hostToken,
         timeoutMs: timeouts.workspaceExport,
       }),
     importWorkspace: (workspaceId: string, payload: Record<string, unknown>) =>
       requestJson<{ ok: boolean }>(baseUrl, `/workspace/${encodeURIComponent(workspaceId)}/import`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "POST",
         body: payload,
@@ -1077,7 +1093,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       requestJson<{ opencode: Record<string, unknown>; openwork: Record<string, unknown>; updatedAt?: number | null }>(
         baseUrl,
         `/workspace/${workspaceId}/config`,
-        { token, hostToken, timeoutMs: timeouts.config },
+        { token: resolveToken(), hostToken, timeoutMs: timeouts.config },
       ),
     setOpenCodeRouterTelegramToken: (
       workspaceId: string,
@@ -1088,7 +1104,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/telegram-token`,
         {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "POST",
           body: { token: tokenValue, healthPort },
@@ -1105,7 +1121,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/slack-tokens`,
         {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "POST",
           body: { botToken, appToken, healthPort },
@@ -1116,14 +1132,14 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       requestJson<OpenworkOpenCodeRouterTelegramInfo>(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/telegram`,
-        { token, hostToken, timeoutMs: timeouts.opencodeRouter },
+        { token: resolveToken(), hostToken, timeoutMs: timeouts.opencodeRouter },
       ),
     getOpenCodeRouterTelegramIdentities: (workspaceId: string, options?: { healthPort?: number | null }) => {
       const query = typeof options?.healthPort === "number" ? `?healthPort=${encodeURIComponent(String(options.healthPort))}` : "";
       return requestJson<OpenworkOpenCodeRouterTelegramIdentitiesResult>(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/identities/telegram${query}`,
-        { token, hostToken, timeoutMs: timeouts.opencodeRouter },
+        { token: resolveToken(), hostToken, timeoutMs: timeouts.opencodeRouter },
       );
     },
     upsertOpenCodeRouterTelegramIdentity: (
@@ -1135,7 +1151,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/identities/telegram`,
         {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "POST",
           body: {
@@ -1153,7 +1169,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       return requestJson<OpenworkOpenCodeRouterTelegramIdentityDeleteResult>(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/identities/telegram/${encodeURIComponent(identityId)}${query}`,
-        { token, hostToken, method: "DELETE" },
+        { token: resolveToken(), hostToken, method: "DELETE" },
       );
     },
     getOpenCodeRouterSlackIdentities: (workspaceId: string, options?: { healthPort?: number | null }) => {
@@ -1161,7 +1177,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       return requestJson<OpenworkOpenCodeRouterSlackIdentitiesResult>(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/identities/slack${query}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       );
     },
     upsertOpenCodeRouterSlackIdentity: (
@@ -1173,7 +1189,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/identities/slack`,
         {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "POST",
           body: {
@@ -1190,7 +1206,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       return requestJson<OpenworkOpenCodeRouterSlackIdentityDeleteResult>(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/identities/slack/${encodeURIComponent(identityId)}${query}`,
-        { token, hostToken, method: "DELETE" },
+        { token: resolveToken(), hostToken, method: "DELETE" },
       );
     },
     getOpenCodeRouterBindings: (
@@ -1205,7 +1221,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       return requestJson<OpenworkOpenCodeRouterBindingsResult>(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/bindings${suffix ? `?${suffix}` : ""}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       );
     },
     setOpenCodeRouterBinding: (
@@ -1217,7 +1233,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/bindings`,
         {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "POST",
           body: {
@@ -1259,7 +1275,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
           : `/w/${encodeURIComponent(workspaceId)}/opencode-router/send`;
 
       return requestJson<OpenworkOpenCodeRouterSendResult>(baseUrl, primaryPath, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "POST",
         body: payload,
@@ -1269,7 +1285,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
           throw error;
         }
         return requestJson<OpenworkOpenCodeRouterSendResult>(baseUrl, fallbackPath, {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "POST",
           body: payload,
@@ -1286,7 +1302,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/opencode-router/telegram-enabled`,
         {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "POST",
           body: { enabled, clearToken: options?.clearToken ?? false, healthPort: options?.healthPort ?? null },
@@ -1294,7 +1310,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       ),
     patchConfig: (workspaceId: string, payload: { opencode?: Record<string, unknown>; openwork?: Record<string, unknown> }) =>
       requestJson<{ updatedAt?: number | null }>(baseUrl, `/workspace/${workspaceId}/config`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "PATCH",
         body: payload,
@@ -1304,12 +1320,12 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       return requestJson<{ items: OpenworkReloadEvent[]; cursor?: number }>(
         baseUrl,
         `/workspace/${workspaceId}/events${query}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       );
     },
     reloadEngine: (workspaceId: string) =>
       requestJson<{ ok: boolean; reloadedAt?: number }>(baseUrl, `/workspace/${workspaceId}/engine/reload`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "POST",
       }),
@@ -1318,32 +1334,32 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       return requestJson<{ items: OpenworkPluginItem[]; loadOrder: string[] }>(
         baseUrl,
         `/workspace/${workspaceId}/plugins${query}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       );
     },
     addPlugin: (workspaceId: string, spec: string) =>
       requestJson<{ items: OpenworkPluginItem[]; loadOrder: string[] }>(
         baseUrl,
         `/workspace/${workspaceId}/plugins`,
-        { token, hostToken, method: "POST", body: { spec } },
+        { token: resolveToken(), hostToken, method: "POST", body: { spec } },
       ),
     removePlugin: (workspaceId: string, name: string) =>
       requestJson<{ items: OpenworkPluginItem[]; loadOrder: string[] }>(
         baseUrl,
         `/workspace/${workspaceId}/plugins/${encodeURIComponent(name)}`,
-        { token, hostToken, method: "DELETE" },
+        { token: resolveToken(), hostToken, method: "DELETE" },
       ),
     listSkills: (workspaceId: string, options?: { includeGlobal?: boolean }) => {
       const query = options?.includeGlobal ? "?includeGlobal=true" : "";
       return requestJson<{ items: OpenworkSkillItem[] }>(
         baseUrl,
         `/workspace/${workspaceId}/skills${query}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       );
     },
     listHubSkills: () =>
       requestJson<{ items: OpenworkHubSkillItem[] }>(baseUrl, `/hub/skills`, {
-        token,
+        token: resolveToken(),
         hostToken,
       }),
     installHubSkill: (
@@ -1355,7 +1371,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
         baseUrl,
         `/workspace/${workspaceId}/skills/hub/${encodeURIComponent(name)}`,
         {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "POST",
           body: {
@@ -1369,35 +1385,35 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       return requestJson<OpenworkSkillContent>(
         baseUrl,
         `/workspace/${workspaceId}/skills/${encodeURIComponent(name)}${query}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       );
     },
     upsertSkill: (workspaceId: string, payload: { name: string; content: string; description?: string }) =>
       requestJson<OpenworkSkillItem>(baseUrl, `/workspace/${workspaceId}/skills`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "POST",
         body: payload,
       }),
     listMcp: (workspaceId: string) =>
-      requestJson<{ items: OpenworkMcpItem[] }>(baseUrl, `/workspace/${workspaceId}/mcp`, { token, hostToken }),
+      requestJson<{ items: OpenworkMcpItem[] }>(baseUrl, `/workspace/${workspaceId}/mcp`, { token: resolveToken(), hostToken }),
     addMcp: (workspaceId: string, payload: { name: string; config: Record<string, unknown> }) =>
       requestJson<{ items: OpenworkMcpItem[] }>(baseUrl, `/workspace/${workspaceId}/mcp`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "POST",
         body: payload,
       }),
     removeMcp: (workspaceId: string, name: string) =>
       requestJson<{ items: OpenworkMcpItem[] }>(baseUrl, `/workspace/${workspaceId}/mcp/${encodeURIComponent(name)}`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "DELETE",
       }),
 
     logoutMcpAuth: (workspaceId: string, name: string) =>
       requestJson<{ ok: true }>(baseUrl, `/workspace/${workspaceId}/mcp/${encodeURIComponent(name)}/auth`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "DELETE",
       }),
@@ -1406,50 +1422,50 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       requestJson<{ items: OpenworkCommandItem[] }>(
         baseUrl,
         `/workspace/${workspaceId}/commands?scope=${scope}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       ),
     listAudit: (workspaceId: string, limit = 50) =>
       requestJson<{ items: OpenworkAuditEntry[] }>(
         baseUrl,
         `/workspace/${workspaceId}/audit?limit=${limit}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       ),
     upsertCommand: (
       workspaceId: string,
       payload: { name: string; description?: string; template: string; agent?: string; model?: string | null; subtask?: boolean },
     ) =>
       requestJson<{ items: OpenworkCommandItem[] }>(baseUrl, `/workspace/${workspaceId}/commands`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "POST",
         body: payload,
       }),
     deleteCommand: (workspaceId: string, name: string) =>
       requestJson<{ ok: boolean }>(baseUrl, `/workspace/${workspaceId}/commands/${encodeURIComponent(name)}`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "DELETE",
       }),
     listScheduledJobs: (workspaceId: string) =>
-      requestJson<{ items: ScheduledJob[] }>(baseUrl, `/workspace/${workspaceId}/scheduler/jobs`, { token, hostToken }),
+      requestJson<{ items: ScheduledJob[] }>(baseUrl, `/workspace/${workspaceId}/scheduler/jobs`, { token: resolveToken(), hostToken }),
     deleteScheduledJob: (workspaceId: string, name: string) =>
       requestJson<{ job: ScheduledJob }>(baseUrl, `/workspace/${workspaceId}/scheduler/jobs/${encodeURIComponent(name)}`,
         {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "DELETE",
         },
       ),
     getSoulStatus: (workspaceId: string) =>
       requestJson<OpenworkSoulStatus>(baseUrl, `/workspace/${encodeURIComponent(workspaceId)}/soul/status`, {
-        token,
+        token: resolveToken(),
         hostToken,
       }),
     listSoulHeartbeats: (workspaceId: string, limit = 20) =>
       requestJson<{ items: OpenworkSoulHeartbeatEntry[]; total: number; path: string }>(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/soul/heartbeats?limit=${encodeURIComponent(String(limit))}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       ),
 
     uploadInbox: async (workspaceId: string, file: File, options?: { path?: string }) => {
@@ -1463,7 +1479,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       }
 
       const result = await requestMultipartRaw(baseUrl, `/workspace/${encodeURIComponent(id)}/inbox`, {
-        token,
+        token: resolveToken(),
         hostToken,
         method: "POST",
         body: form,
@@ -1508,7 +1524,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
 
     listInbox: (workspaceId: string) =>
       requestJson<OpenworkInboxList>(baseUrl, `/workspace/${encodeURIComponent(workspaceId)}/inbox`, {
-        token,
+        token: resolveToken(),
         hostToken,
       }),
 
@@ -1516,14 +1532,14 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       requestBinary(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/inbox/${encodeURIComponent(inboxId)}`,
-        { token, hostToken, timeoutMs: timeouts.binary },
+        { token: resolveToken(), hostToken, timeoutMs: timeouts.binary },
       ),
 
     readWorkspaceFile: (workspaceId: string, path: string) =>
       requestJson<OpenworkWorkspaceFileContent>(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/files/content?path=${encodeURIComponent(path)}`,
-        { token, hostToken },
+        { token: resolveToken(), hostToken },
       ),
 
     writeWorkspaceFile: (
@@ -1534,7 +1550,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/files/content`,
         {
-          token,
+          token: resolveToken(),
           hostToken,
           method: "POST",
           body: payload,
@@ -1543,7 +1559,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
 
     listArtifacts: (workspaceId: string) =>
       requestJson<OpenworkArtifactList>(baseUrl, `/workspace/${encodeURIComponent(workspaceId)}/artifacts`, {
-        token,
+        token: resolveToken(),
         hostToken,
       }),
 
@@ -1551,7 +1567,7 @@ export function createOpenworkServerClient(options: { baseUrl: string; token?: s
       requestBinary(
         baseUrl,
         `/workspace/${encodeURIComponent(workspaceId)}/artifacts/${encodeURIComponent(artifactId)}`,
-        { token, hostToken, timeoutMs: timeouts.binary },
+        { token: resolveToken(), hostToken, timeoutMs: timeouts.binary },
       ),
   };
 }

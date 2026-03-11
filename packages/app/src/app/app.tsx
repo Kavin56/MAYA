@@ -423,7 +423,12 @@ export default function App() {
     const baseUrl = openworkServerBaseUrl().trim();
     if (!baseUrl) return null;
     const auth = openworkServerAuth();
-    return createOpenworkServerClient({ baseUrl, token: auth.token, hostToken: auth.hostToken });
+    return createOpenworkServerClient({
+      baseUrl,
+      token: auth.token,
+      hostToken: auth.hostToken,
+      getToken: () => openworkServerSettings().token?.trim() || undefined,
+    });
   });
 
   const devtoolsOpenworkClient = createMemo(() => openworkServerClient());

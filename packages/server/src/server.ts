@@ -25,6 +25,19 @@ import pkg from "../package.json" with { type: "json" };
 
 const SERVER_VERSION = pkg.version;
 
+/** Append one NDJSON line for RunPod/server-side debug. Uses /tmp so it works regardless of cwd. */
+function debugLogServer(payload: Record<string, unknown>) {
+  const line = JSON.stringify({ ...payload, timestamp: Date.now() }) + "\n";
+  const logPath = process.platform === "win32" ? join(process.cwd(), ".cursor", "debug-server.log") : "/tmp/debug-server.log";
+  if (process.platform !== "win32") {
+    writeFile(logPath, line, { flag: "a" }).catch(() => {});
+  } else {
+    ensureDir(dirname(logPath))
+      .then(() => writeFile(logPath, line, { flag: "a" }))
+      .catch(() => {});
+  }
+}
+
 type LogLevel = "info" | "warn" | "error";
 
 type LogAttributes = Record<string, unknown>;
@@ -668,6 +681,12 @@ async function proxyOpencodeRequest(input: {
       if (!promptText) {
         body = bodyText; // restore for opencode proxy
       } else {
+        // #region agent log
+        try {
+          debugLogServer({ location: "server.ts:prompt_async", message: "OWL intercept", data: { hasPrompt: true }, hypothesisId: "H4" });
+          fetch('http://127.0.0.1:7242/ingest/c88f07d5-0f01-46c3-ba3e-034808f0bae7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.ts:prompt_async',message:'OWL intercept',data:{hasPrompt:true},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+        } catch (_) {}
+        // #endregion
         console.log(`[MAYA] Forwarding prompt to OWL worker. Model: ${targetModel}, Prompt: ${promptText.substring(0, 50)}...`);
         const owlResponse = await fetch("http://127.0.0.1:5000/task", {
           method: "POST",
@@ -706,6 +725,12 @@ async function proxyOpencodeRequest(input: {
             if (!injectRes.ok) {
               const errText = await injectRes.text();
               console.error(`[MAYA] Inject failed ${injectRes.status}:`, errText);
+              // #region agent log
+              try {
+                debugLogServer({ location: "server.ts:prompt_async", message: "inject failed", data: { injectStatus: injectRes.status, hasClientAuth: Boolean(input.request.headers.get("Authorization")) }, hypothesisId: "H4" });
+                fetch('http://127.0.0.1:7242/ingest/c88f07d5-0f01-46c3-ba3e-034808f0bae7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.ts:prompt_async',message:'inject failed',data:{injectStatus:injectRes.status,hasClientAuth:Boolean(input.request.headers.get("Authorization"))},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+              } catch (_) {}
+              // #endregion
               return new Response(
                 JSON.stringify({ error: "Inject failed", status: injectRes.status, detail: errText }),
                 { status: 502, headers: { "Content-Type": "application/json" } }
@@ -722,6 +747,12 @@ async function proxyOpencodeRequest(input: {
       }
     } catch (err) {
       console.error(`[MAYA] OWL interception error:`, err);
+      // #region agent log
+      try {
+        debugLogServer({ location: "server.ts:prompt_async", message: "OWL catch", data: { errMsg: err instanceof Error ? err.message : String(err) }, hypothesisId: "H4" });
+        fetch('http://127.0.0.1:7242/ingest/c88f07d5-0f01-46c3-ba3e-034808f0bae7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.ts:prompt_async',message:'OWL catch',data:{errMsg:err instanceof Error ? err.message : String(err)},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+      } catch (_) {}
+      // #endregion
       return new Response(
         JSON.stringify({ error: "OWL error", message: err instanceof Error ? err.message : String(err) }),
         { status: 502, headers: { "Content-Type": "application/json" } }
@@ -830,10 +861,20 @@ async function requireClient(request: Request, config: ServerConfig, tokens: Tok
   const header = request.headers.get("authorization") ?? "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   const token = match?.[1];
+  const hasAuthHeader = Boolean(token);
+  let scope: string | null = null;
+  if (token) {
+    scope = await tokens.scopeForToken(token);
+  }
+  // #region agent log
+  try {
+    debugLogServer({ location: "server.ts:requireClient", message: "requireClient", data: { hasAuthHeader, scopeResult: scope ?? "null", path: new URL(request.url).pathname.slice(0, 80) }, hypothesisId: "H3" });
+    fetch('http://127.0.0.1:7242/ingest/c88f07d5-0f01-46c3-ba3e-034808f0bae7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.ts:requireClient',message:'requireClient',data:{hasAuthHeader,scopeResult:scope??'null',path:new URL(request.url).pathname.slice(0,80)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+  } catch (_) {}
+  // #endregion
   if (!token) {
     throw new ApiError(401, "unauthorized", "Invalid bearer token");
   }
-  const scope = await tokens.scopeForToken(token);
   if (!scope) {
     throw new ApiError(401, "unauthorized", "Invalid bearer token");
   }
