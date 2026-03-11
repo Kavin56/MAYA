@@ -308,11 +308,26 @@ else
   ./venv/bin/pip install --upgrade pip -q
   ./venv/bin/pip install -r requirements.txt -q 2>/dev/null || ./venv/bin/pip install fastapi uvicorn pydantic python-dotenv requests -q
   ./venv/bin/pip install openai -q
-  ./venv/bin/pip install "camel-ai[all]>=0.2.0" -q 2>/dev/null || true
+  ./venv/bin/pip install "camel-ai[all]" -q 2>/dev/null || true
+  OWL_PYTHON="./venv/bin/python"
+  if ! ./venv/bin/python -c "from camel.agents import ChatAgent" 2>/dev/null; then
+    echo "  camel-ai 0.2.x not on PyPI; cloning camel-ai/owl and installing with uv..."
+    OWL_CLONE="$OWL_DIR/owl-repo"
+    if [ ! -d "$OWL_CLONE" ]; then
+      git clone --depth 1 https://github.com/camel-ai/owl.git "$OWL_CLONE" 2>/dev/null || true
+    fi
+    if [ -d "$OWL_CLONE" ]; then
+      (cd "$OWL_CLONE" && pip install uv -q 2>/dev/null; uv venv .venv --python=3.10 2>/dev/null; . .venv/bin/activate && uv pip install -e . -q 2>/dev/null && uv pip install -r "$OWL_DIR/requirements.txt" -q 2>/dev/null)
+      if [ -x "$OWL_CLONE/.venv/bin/python" ]; then
+        OWL_PYTHON="$OWL_CLONE/.venv/bin/python"
+        echo "  Using CAMEL from camel-ai/owl repo."
+      fi
+    fi
+  fi
   set -e
 
   echo "  Starting OWL backend (uvicorn 0.0.0.0:5000)..."
-  nohup ./venv/bin/uvicorn main:app --host 0.0.0.0 --port 5000 > /tmp/owl-worker.log 2>&1 &
+  nohup "$OWL_PYTHON" -m uvicorn main:app --host 0.0.0.0 --port 5000 > /tmp/owl-worker.log 2>&1 &
   OWL_PID=$!
   echo "  OWL worker PID: $OWL_PID"
   sleep 3

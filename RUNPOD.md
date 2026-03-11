@@ -67,6 +67,8 @@ If the public URL shows **endpoint is offline (ERR_NGROK_3200)**:
 
 If the OWL worker fails, check: `tail -50 /tmp/owl-worker.log`
 
+**CAMEL / `camel_available`:** PyPI has no `camel-ai>=0.2.0`. The script tries `camel-ai[all]` from PyPI; if the `camel` module is not available, it clones [camel-ai/owl](https://github.com/camel-ai/owl) and installs with `uv` (Python 3.10, `uv venv` + `uv pip install -e .`), then runs the OWL backend with that env so `/ping` can report `camel_available: true`. To do it manually: `git clone https://github.com/camel-ai/owl.git`, `cd owl`, `pip install uv`, `uv venv .venv --python=3.10`, `source .venv/bin/activate`, `uv pip install -e .`.
+
 ## 3. After it’s running
 
 - **Public URL:** printed at the end (e.g. `https://nondetonating-cecile-nongrounded.ngrok-free.dev`).
