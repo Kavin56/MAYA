@@ -4,12 +4,12 @@ import sys
 import logging
 from dotenv import load_dotenv
 
-# Set up logging to file and console
+# Set up logging to console (stdout)
+# Python scripts on RunPod will have their stdout redirected to /tmp/owl-worker.log by the shell.
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
-        logging.FileHandler("/tmp/owl-worker.log"),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -220,5 +220,4 @@ async def run_task(req: TaskRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", "5000"))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=5000)

@@ -298,6 +298,56 @@ export function startServer(config: ServerConfig) {
         return wrapped;
       };
 
+      // --- DEBUG & OWL WORKER ROUTES (ROOT & /worker) ---
+      // These take precedence to allow easy troubleshooting
+      if (url.pathname === "/ping") {
+        try {
+          const targetUrl = new URL("/ping", "http://127.0.0.1:5000");
+          const response = await fetch(targetUrl.href);
+          return finalize(response);
+        } catch (error) {
+          console.error(`[MAYA] Error proxying to worker (root ping):`, error);
+          errorMessage = "worker_unreachable";
+          return finalize(jsonResponse({ code: "worker_unreachable", message: "OWL worker is not running on port 5000" }, 502));
+        }
+      }
+
+      if (url.pathname === "/worker" || url.pathname.startsWith("/worker/")) {
+        try {
+          // Allow unauthenticated access to debug endpoints for troubleshooting
+          const isDebug = url.pathname.includes("/debug/test-key") || url.pathname.includes("/ping");
+          if (!isDebug) {
+             await requireClient(request, config, tokens);
+          }
+          const proxyPath = url.pathname.slice("/worker".length) || "/";
+          const targetUrl = new URL(proxyPath, "http://127.0.0.1:5000");
+          targetUrl.search = url.search;
+
+          const method = request.method.toUpperCase();
+          const proxyReq = new Request(targetUrl.href, {
+            method: request.method,
+            headers: request.headers,
+            body: (method === "GET" || method === "HEAD") ? null : request.body,
+            // @ts-ignore
+            duplex: "half",
+          });
+
+          const response = await fetch(proxyReq);
+          return finalize(response);
+        } catch (error) {
+          console.error(`[MAYA] Error proxying to worker (path):`, error);
+          const apiError = error instanceof ApiError
+            ? error
+            : new ApiError(500, "internal_error", "Unexpected server error");
+          errorMessage = apiError.message;
+          return finalize(jsonResponse(formatError(apiError), apiError.status));
+        }
+      }
+
+      if (url.pathname === "/token") {
+        return finalize(jsonResponse({ token: config.token, source: "env" }));
+      }
+      // --------------------------------------------------
       // Handle CORS preflight requests early so that browsers can call all routes.
       if (request.method.toUpperCase() === "OPTIONS") {
         return finalize(
@@ -331,38 +381,6 @@ export function startServer(config: ServerConfig) {
         }
       }
 
-      if (mount && (mount.restPath === "/worker" || mount.restPath.startsWith("/worker/"))) {
-        authMode = "client";
-        try {
-          // Allow unauthenticated access to debug endpoints for troubleshooting
-          const isDebug = mount.restPath.includes("/debug/test-key") || mount.restPath.includes("/ping");
-          if (!isDebug) {
-             await requireClient(request, config, tokens);
-          }
-          const proxyPath = mount.restPath.slice("/worker".length) || "/";
-          const targetUrl = new URL(proxyPath, "http://127.0.0.1:5000");
-          targetUrl.search = url.search;
-
-          const method = request.method.toUpperCase();
-          const proxyReq = new Request(targetUrl.href, {
-            method: request.method,
-            headers: request.headers,
-            body: (method === "GET" || method === "HEAD") ? null : request.body,
-            // @ts-ignore
-            duplex: "half",
-          });
-
-          const response = await fetch(proxyReq);
-          return finalize(response);
-        } catch (error) {
-          console.error(`[MAYA] Error proxying to worker (mount):`, error);
-          const apiError = error instanceof ApiError
-            ? error
-            : new ApiError(500, "internal_error", "Unexpected server error");
-          errorMessage = apiError.message;
-          return finalize(jsonResponse(formatError(apiError), apiError.status));
-        }
-      }
       if (mount && (mount.restPath === "/opencode-router" || mount.restPath.startsWith("/opencode-router/"))) {
         const policy = resolveOpenCodeRouterProxyPolicy(request.method, mount.restPath);
         authMode = policy.auth;
@@ -429,53 +447,6 @@ export function startServer(config: ServerConfig) {
             : new ApiError(500, "internal_error", "Unexpected server error");
           errorMessage = apiError.message;
           return finalize(jsonResponse(formatError(apiError), apiError.status));
-        }
-      }
-
-      if (url.pathname === "/worker" || url.pathname.startsWith("/worker/")) {
-        authMode = "client";
-        try {
-          // Allow unauthenticated access to debug endpoints for troubleshooting
-          const isDebug = url.pathname.includes("/debug/test-key") || url.pathname.includes("/ping");
-          if (!isDebug) {
-             await requireClient(request, config, tokens);
-          }
-          const proxyPath = url.pathname.slice("/worker".length) || "/";
-          const targetUrl = new URL(proxyPath, "http://127.0.0.1:5000");
-          targetUrl.search = url.search;
-
-          const proxyReq = new Request(targetUrl.href, {
-            method: request.method,
-            headers: request.headers,
-            body: (request.method === "GET" || request.method === "HEAD") ? null : request.body,
-            // @ts-ignore
-            duplex: "half",
-          });
-
-          const response = await fetch(proxyReq);
-          return finalize(response);
-        } catch (error) {
-          console.error(`[MAYA] Error proxying to worker (path):`, error);
-          const apiError = error instanceof ApiError
-            ? error
-            : new ApiError(500, "internal_error", "Unexpected server error");
-          errorMessage = apiError.message;
-          return finalize(jsonResponse(formatError(apiError), apiError.status));
-        }
-      }
-
-      if (url.pathname === "/token") {
-        return finalize(jsonResponse({ token: config.token, source: "env" }));
-      }
-
-      if (url.pathname === "/ping") {
-        try {
-          const targetUrl = new URL("/ping", "http://127.0.0.1:5000");
-          const response = await fetch(targetUrl.href);
-          return finalize(response);
-        } catch (error) {
-          console.error(`[MAYA] Error proxying to worker (root ping):`, error);
-          return finalize(jsonResponse({ code: "worker_unreachable", message: "OWL worker is not running on port 5000" }, 502));
         }
       }
 

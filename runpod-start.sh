@@ -261,35 +261,37 @@ else
 
 fi
 
-# ─── Start OWL Python Worker on port 5000 ───────────────────────────────
-
-echo "▶ Starting OWL remote worker on port 5000..."
-
-set +e
-
+# Start the OWL worker background process on port 5000
+echo "▶ Starting OWL worker (CAMEL-AI) on port 5000..."
 cd /workspace/MAYA/src/owl-backend
 
+# Kill any existing worker on port 5000
+fuser -k 5000/tcp > /dev/null 2>&1 || true
+
+# Initialize venv if needed
 if [ ! -d "venv" ]; then
-
+    echo "  Creating Python virtual environment..."
     python3 -m venv venv >> /tmp/owl-install.log 2>&1
-
 fi
 
 source venv/bin/activate >> /tmp/owl-install.log 2>&1
+echo "  Checking/Installing Python dependencies..."
+./venv/bin/pip install --upgrade pip >> /tmp/owl-install.log 2>&1
+./venv/bin/pip install -r requirements.txt >> /tmp/owl-install.log 2>&1
 
-echo "  Installing Python dependencies (this may take a minute)..."
-
-pip install -r requirements.txt >> /tmp/owl-install.log 2>&1
-
-echo "  Installing Playwright browsers..."
-
-playwright install chromium >> /tmp/owl-install.log 2>&1
-
-nohup uvicorn main:app --host 0.0.0.0 --port 5000 > /tmp/owl-worker.log 2>&1 &
+echo "  Starting OWL backend with uvicorn..."
+# Use full path to uvicorn from venv to be absolutely sure
+nohup ./venv/bin/uvicorn main:app --host 0.0.0.0 --port 5000 > /tmp/owl-worker.log 2>&1 &
 
 OWL_PID=$!
-
-echo "  OWL Worker PID: $OWL_PID"
+echo "  OWL worker PID: $OWL_PID"
+echo "  Log available at /tmp/owl-worker.log"
+sleep 2
+if ps -p $OWL_PID > /dev/null; then
+    echo "  OWL worker is running."
+else
+    echo "  ⚠️ OWL worker failed to start! Check /tmp/owl-worker.log"
+fi
 
 cd /workspace/MAYA
 
