@@ -667,17 +667,22 @@ async function proxyOpencodeRequest(input: {
       try {
         const parsedBody = JSON.parse(bodyText);
 
-        // Extract the prompt text
+        // Extract the prompt text and target model
         const promptText = parsedBody.parts?.find((p: any) => p.type === "text")?.text || "";
+        const targetModel = parsedBody.model?.modelID || "auto";
+
         if (!promptText) return;
 
-        console.log(`[MAYA] Forwarding prompt to OWL worker: ${promptText.substring(0, 50)}...`);
+        console.log(`[MAYA] Forwarding prompt to OWL worker. Model: ${targetModel}, Prompt: ${promptText.substring(0, 50)}...`);
 
         // Call the OWL backend on port 5000
         const owlResponse = await fetch("http://127.0.0.1:5000/task", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: promptText }),
+          body: JSON.stringify({ 
+            prompt: promptText,
+            target_model: targetModel.startsWith("byo:") ? targetModel : `byo:${targetModel}`
+          }),
         });
 
         if (!owlResponse.ok) {
