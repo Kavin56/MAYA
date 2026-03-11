@@ -435,8 +435,9 @@ export function startServer(config: ServerConfig) {
       if (url.pathname === "/worker" || url.pathname.startsWith("/worker/")) {
         authMode = "client";
         try {
-          // Allow unauthenticated access to debug/test-key for troubleshooting
-          if (!url.pathname.includes("/debug/test-key")) {
+          // Allow unauthenticated access to debug endpoints for troubleshooting
+          const isDebug = url.pathname.includes("/debug/test-key") || url.pathname.includes("/ping");
+          if (!isDebug) {
              await requireClient(request, config, tokens);
           }
           const proxyPath = url.pathname.slice("/worker".length) || "/";
