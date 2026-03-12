@@ -338,10 +338,17 @@ if [ "$CLOUDFLARE_QUICK_TUNNEL" = "1" ] || [ "$CLOUDFLARE_QUICK_TUNNEL" = "true"
   fi
   CLOUDFLARE_PID=$!
   disown $CLOUDFLARE_PID 2>/dev/null || true
-  sleep 4
+  # Wait for cloudflared to print "Your quick Tunnel has been created! ... https://....trycloudflare.com"
+  sleep 8
   if ps -p $CLOUDFLARE_PID > /dev/null 2>&1; then
     echo "  *** Quick Tunnel running *** (PID $CLOUDFLARE_PID)"
-    QUICK_URL="$(grep -Eo 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1)"
+    QUICK_URL=""
+    for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
+      # Match the unique trycloudflare.com URL from log (subdomain can have letters, numbers, hyphens)
+      QUICK_URL="$(grep -Eo 'https://[a-zA-Z0-9][a-zA-Z0-9-]*\.trycloudflare\.com' /tmp/cloudflared.log 2>/dev/null | tail -1)"
+      [ -n "$QUICK_URL" ] && break
+      sleep 2
+    done
     if [ -n "$QUICK_URL" ]; then
       export CLOUDFLARE_PUBLIC_URL="$QUICK_URL"
       echo "  Public URL: $CLOUDFLARE_PUBLIC_URL"
@@ -354,10 +361,10 @@ if [ "$CLOUDFLARE_QUICK_TUNNEL" = "1" ] || [ "$CLOUDFLARE_QUICK_TUNNEL" = "true"
           if ! git -C "$PROJECT_ROOT" diff --quiet -- docs/tunnel.json 2>/dev/null; then
             git -C "$PROJECT_ROOT" add docs/tunnel.json
             git -C "$PROJECT_ROOT" -c user.name="RunPod" -c user.email="runpod@localhost" commit -m "Update tunnel URL (RunPod)" -q 2>/dev/null
-            if git -C "$PROJECT_ROOT" push "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git" master -q 2>/dev/null; then
+            if git -C "$PROJECT_ROOT" push "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git" master 2>/tmp/github-push.log; then
               echo "  GitHub Pages pointer updated (docs/tunnel.json pushed)."
             else
-              echo "  [skip] GitHub push failed (check GITHUB_TOKEN and GITHUB_REPO)."
+              echo "  [skip] GitHub push failed. Run: cat /tmp/github-push.log"
             fi
           fi
         fi
@@ -365,10 +372,13 @@ if [ "$CLOUDFLARE_QUICK_TUNNEL" = "1" ] || [ "$CLOUDFLARE_QUICK_TUNNEL" = "true"
       fi
     else
       echo "  Public URL not detected yet. Run: tail -50 /tmp/cloudflared.log"
+      # Do not use .env CLOUDFLARE_PUBLIC_URL (e.g. maya) when Quick Tunnel URL was not found
+      export CLOUDFLARE_PUBLIC_URL=""
     fi
   else
     echo "  *** Quick Tunnel failed or exited *** Run: tail -50 /tmp/cloudflared.log"
     tail -50 /tmp/cloudflared.log
+    export CLOUDFLARE_PUBLIC_URL=""
   fi
   echo "============================================"
   echo ""
@@ -423,7 +433,13 @@ fi
 
 set -e
 
-PUBLIC_URL="${CLOUDFLARE_PUBLIC_URL:-https://maya.cfargotunnel.com}"
+# When using Quick Tunnel, only show maya default if we never got a quick URL (so user checks the log)
+if [ "$CLOUDFLARE_QUICK_TUNNEL" = "1" ] || [ "$CLOUDFLARE_QUICK_TUNNEL" = "true" ] || [ "$CLOUDFLARE_QUICK_TUNNEL" = "yes" ]; then
+  PUBLIC_URL="${CLOUDFLARE_PUBLIC_URL:-}"
+  [ -z "$PUBLIC_URL" ] && PUBLIC_URL="(see tail -30 /tmp/cloudflared.log for Quick Tunnel URL)"
+else
+  PUBLIC_URL="${CLOUDFLARE_PUBLIC_URL:-https://maya.cfargotunnel.com}"
+fi
 echo ""
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║  🚀 All services running!                                      ║"
