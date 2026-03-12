@@ -337,15 +337,22 @@ if [ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]; then
     pkill -9 cloudflared 2>/dev/null || true
     sleep 2
     : > /tmp/cloudflared.log
-    nohup cloudflared tunnel run --token "$CLOUDFLARE_TUNNEL_TOKEN" >> /tmp/cloudflared.log 2>&1 &
+    # Run cloudflared in background, detached from terminal so it survives session close (nohup + setsid when available)
+    if command -v setsid &>/dev/null; then
+      setsid nohup cloudflared tunnel run --token "$CLOUDFLARE_TUNNEL_TOKEN" >> /tmp/cloudflared.log 2>&1 </dev/null &
+    else
+      nohup cloudflared tunnel run --token "$CLOUDFLARE_TUNNEL_TOKEN" >> /tmp/cloudflared.log 2>&1 </dev/null &
+    fi
     CLOUDFLARE_PID=$!
     disown $CLOUDFLARE_PID 2>/dev/null || true
-    sleep 3
+    sleep 4
     if ps -p $CLOUDFLARE_PID > /dev/null 2>&1; then
       echo "  *** Cloudflare tunnel running *** (PID $CLOUDFLARE_PID)"
+      echo "  Keep the script running in tmux (Ctrl+B D to detach) so the tunnel stays up."
     else
-      echo "  *** Cloudflare tunnel failed *** Run: tail -30 /tmp/cloudflared.log"
+      echo "  *** Cloudflare tunnel failed or exited *** Run: tail -30 /tmp/cloudflared.log"
       tail -20 /tmp/cloudflared.log
+      echo "  Tip: Set CLOUDFLARE_SERVICE_INSTALL=1 in .env to run tunnel as a system service (survives terminal close)."
     fi
   fi
   if [ -n "$CLOUDFLARE_PUBLIC_URL" ]; then
