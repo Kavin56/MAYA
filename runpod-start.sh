@@ -30,6 +30,7 @@ fi
 # Cloudflare Tunnel: token from dashboard (Zero Trust → Networks → Connectors → your tunnel → Install). Public URL = hostname you set in "Route tunnel".
 export CLOUDFLARE_TUNNEL_TOKEN="${CLOUDFLARE_TUNNEL_TOKEN:-}"
 export CLOUDFLARE_PUBLIC_URL="${CLOUDFLARE_PUBLIC_URL:-}"
+export CLOUDFLARE_QUICK_TUNNEL="${CLOUDFLARE_QUICK_TUNNEL:-0}"
 
 
 
@@ -319,7 +320,39 @@ fi
 
 # ─── 4. Start Cloudflare Tunnel (after server is up so tunnel can forward) ───
 # Token is read from src/owl-backend/.env (CLOUDFLARE_TUNNEL_TOKEN). Set it once; never commit .env.
-if [ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]; then
+# If you do NOT have a domain, you can use a Cloudflare Quick Tunnel (trycloudflare.com):
+#   set CLOUDFLARE_QUICK_TUNNEL=1 (no token needed; URL changes each run).
+if [ "$CLOUDFLARE_QUICK_TUNNEL" = "1" ] || [ "$CLOUDFLARE_QUICK_TUNNEL" = "true" ] || [ "$CLOUDFLARE_QUICK_TUNNEL" = "yes" ]; then
+  echo ""
+  echo "========== Cloudflare Quick Tunnel =========="
+  pkill -9 cloudflared 2>/dev/null || true
+  sleep 2
+  : > /tmp/cloudflared.log
+  # Quick Tunnel does NOT require a Cloudflare account or domain, but the URL is ephemeral (changes each run).
+  if command -v setsid &>/dev/null; then
+    setsid nohup cloudflared tunnel --url "http://localhost:$SERVER_PORT" --no-autoupdate >> /tmp/cloudflared.log 2>&1 </dev/null &
+  else
+    nohup cloudflared tunnel --url "http://localhost:$SERVER_PORT" --no-autoupdate >> /tmp/cloudflared.log 2>&1 </dev/null &
+  fi
+  CLOUDFLARE_PID=$!
+  disown $CLOUDFLARE_PID 2>/dev/null || true
+  sleep 4
+  if ps -p $CLOUDFLARE_PID > /dev/null 2>&1; then
+    echo "  *** Quick Tunnel running *** (PID $CLOUDFLARE_PID)"
+    QUICK_URL="$(grep -Eo 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1)"
+    if [ -n "$QUICK_URL" ]; then
+      export CLOUDFLARE_PUBLIC_URL="$QUICK_URL"
+      echo "  Public URL: $CLOUDFLARE_PUBLIC_URL"
+    else
+      echo "  Public URL not detected yet. Run: tail -50 /tmp/cloudflared.log"
+    fi
+  else
+    echo "  *** Quick Tunnel failed or exited *** Run: tail -50 /tmp/cloudflared.log"
+    tail -50 /tmp/cloudflared.log
+  fi
+  echo "============================================"
+  echo ""
+elif [ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]; then
   echo ""
   echo "========== Cloudflare Tunnel =========="
   CLOUDFLARE_SERVICE_INSTALL="${CLOUDFLARE_SERVICE_INSTALL:-0}"
@@ -337,11 +370,14 @@ if [ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]; then
     pkill -9 cloudflared 2>/dev/null || true
     sleep 2
     : > /tmp/cloudflared.log
-    # Run cloudflared in background, detached from terminal so it survives session close (nohup + setsid when available)
+    # Run cloudflared in background. Use HTTP/2 if QUIC fails (e.g. RunPod blocks UDP).
+    CLOUDFLARE_PROTOCOL="${CLOUDFLARE_PROTOCOL:-}"
+    CMD="cloudflared tunnel run --token $CLOUDFLARE_TUNNEL_TOKEN"
+    [ -n "$CLOUDFLARE_PROTOCOL" ] && CMD="$CMD --protocol $CLOUDFLARE_PROTOCOL"
     if command -v setsid &>/dev/null; then
-      setsid nohup cloudflared tunnel run --token "$CLOUDFLARE_TUNNEL_TOKEN" >> /tmp/cloudflared.log 2>&1 </dev/null &
+      setsid nohup $CMD >> /tmp/cloudflared.log 2>&1 </dev/null &
     else
-      nohup cloudflared tunnel run --token "$CLOUDFLARE_TUNNEL_TOKEN" >> /tmp/cloudflared.log 2>&1 </dev/null &
+      nohup $CMD >> /tmp/cloudflared.log 2>&1 </dev/null &
     fi
     CLOUDFLARE_PID=$!
     disown $CLOUDFLARE_PID 2>/dev/null || true
@@ -352,6 +388,7 @@ if [ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]; then
     else
       echo "  *** Cloudflare tunnel failed or exited *** Run: tail -30 /tmp/cloudflared.log"
       tail -20 /tmp/cloudflared.log
+      echo "  If you see 'context canceled' / QUIC errors, add to .env: CLOUDFLARE_PROTOCOL=http2"
       echo "  Tip: Set CLOUDFLARE_SERVICE_INSTALL=1 in .env to run tunnel as a system service (survives terminal close)."
     fi
   fi

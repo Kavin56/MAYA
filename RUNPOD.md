@@ -21,12 +21,19 @@ cd /workspace/MAYA
 
 ```bash
 cp src/owl-backend/.env.example src/owl-backend/.env
-# Edit .env: set OPENROUTER_API_KEY, CLOUDFLARE_TUNNEL_TOKEN, and CLOUDFLARE_PUBLIC_URL
+# Edit .env: set OPENROUTER_API_KEY.
+# For Cloudflare access, pick ONE:
+# - Managed tunnel (Cloudflare account): CLOUDFLARE_TUNNEL_TOKEN + CLOUDFLARE_PUBLIC_URL
+# - Quick Tunnel (no domain/account): CLOUDFLARE_QUICK_TUNNEL=1 (public URL changes each run)
 ```
 
-Required in `.env` for Cloudflare Tunnel: `CLOUDFLARE_TUNNEL_TOKEN` (from Zero Trust → Networks → Connectors → your tunnel → Install), and `CLOUDFLARE_PUBLIC_URL=https://maya.cfargotunnel.com`.
+### No domain? Use Cloudflare Quick Tunnel
 
-**Frontend (remote workspace / chat):** To avoid 401 on health and chat, add the worker token in the app. Get it from `https://maya.cfargotunnel.com/token` and paste it when connecting to the MAYA worker so requests include `Authorization: Bearer <token>`.
+If you do not want to buy a domain, set `CLOUDFLARE_QUICK_TUNNEL=1` in `src/owl-backend/.env` and run `./runpod-start.sh`.
+The script will print a public URL like `https://<random>.trycloudflare.com` (ephemeral — changes each run).
+
+**Frontend (remote workspace / chat):** Use the printed public URL.
+Get the worker token from `<public-url>/token` and paste it when connecting so requests include `Authorization: Bearer <token>`.
 
 ## 2. Run everything
 
@@ -57,14 +64,16 @@ This will:
 2. Start **opencode** on port 4096 (if `opencode` is in PATH).
 3. Start **maya-server** on port 8787.
 4. Start **OWL worker** on port 5000 (from `src/owl-backend`).
-5. Start **Cloudflare Tunnel** (if `CLOUDFLARE_TUNNEL_TOKEN` is set in `.env`).
+5. Start **Cloudflare Tunnel** (managed tunnel if `CLOUDFLARE_TUNNEL_TOKEN` is set, or Quick Tunnel if `CLOUDFLARE_QUICK_TUNNEL=1`).
 
-If the public URL does not load (e.g. ERR_NAME_NOT_RESOLVED):
+**Do I need "Your hostname routes" (Beta)?** No. For exposing a public URL you use **Published application routes** only. The **Hostname routes** (Beta) section is for a different feature (traffic steering / private hostnames) and is not required for this setup.
 
-- The hostname must resolve: use **https://maya.cfargotunnel.com** (subdomain `maya`, domain `cfargotunnel.com` in Route tunnel). Names like `maya.mayarunpod` fail because `mayarunpod` is not a real domain.
-- In **Route tunnel**, set the service to `http://localhost:8787`.
-- Ensure `CLOUDFLARE_PUBLIC_URL` in `.env` matches the hostname you set in Route tunnel.
-- Check tunnel logs: `tail -30 /tmp/cloudflared.log`. If the tunnel exits, run `pkill -9 cloudflared; sleep 2` then `./runpod-start.sh` again.
+If the public URL does not load (e.g. ERR_NAME_NOT_RESOLVED or ERR_CONNECTION_TIMED_OUT):
+
+- If you used **Quick Tunnel** (`CLOUDFLARE_QUICK_TUNNEL=1`), use the printed `https://<random>.trycloudflare.com` URL; it changes each run.
+- If you used a **managed tunnel**, ensure `CLOUDFLARE_PUBLIC_URL` in `.env` matches the hostname you configured.
+- Check tunnel logs: `tail -30 /tmp/cloudflared.log`. Look for `Registered tunnel connection`; if you see `context canceled` or QUIC/control stream errors, add to `.env`: `CLOUDFLARE_PROTOCOL=http2` and restart. If the tunnel exited, run `pkill -9 cloudflared; sleep 2` then `./runpod-start.sh` again.
+- **Tunnel HEALTHY but site still times out:** On the RunPod shell run: `curl -s http://localhost:8787/health` (should return JSON with `ok: true`). If that fails, maya-server isn’t up. If it succeeds, the connector may be a different run—ensure the token in `.env` is the one for the connector that shows HEALTHY in the dashboard (Zero Trust → Connectors → your tunnel). From your own machine try: `nslookup maya.cfargotunnel.com` to confirm the hostname resolves.
 
 If the OWL worker fails, check: `tail -50 /tmp/owl-worker.log`
 
@@ -72,15 +81,15 @@ If the OWL worker fails, check: `tail -50 /tmp/owl-worker.log`
 
 ## 3. After it’s running
 
-- **Public URL:** `https://maya.cfargotunnel.com` (set `CLOUDFLARE_PUBLIC_URL=https://maya.cfargotunnel.com` in `.env`).
-- **Health:** `https://maya.cfargotunnel.com/health`
-- **Token:** `https://maya.cfargotunnel.com/token`
-- **OWL ping:** `https://maya.cfargotunnel.com/worker/ping` (expect `"message":"pong"` if OWL is up).
-- **Debug key:** `https://maya.cfargotunnel.com/worker/debug/test-key` (optional: `?model=google/gemini-2.5-flash`).
+- **Public URL:** either your managed-tunnel hostname, or the printed Quick Tunnel `https://<random>.trycloudflare.com`.
+- **Health:** `<public-url>/health`
+- **Token:** `<public-url>/token`
+- **OWL ping:** `<public-url>/worker/ping` (expect `"message":"pong"` if OWL is up).
+- **Debug key:** `<public-url>/worker/debug/test-key` (optional: `?model=google/gemini-2.5-flash`).
 
 **Frontend (Netlify / Vercel / local):** set so the app uses this backend:
 
-- `VITE_OPENWORK_URL=https://maya.cfargotunnel.com`
-- `VITE_API_URL=https://maya.cfargotunnel.com/` (optional; same base URL)
+- `VITE_OPENWORK_URL=<public-url>`
+- `VITE_API_URL=<public-url>/` (optional; same base URL)
 
 The client token is printed by the script; the frontend can also fetch it from `/token`.
