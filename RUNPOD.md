@@ -1,6 +1,6 @@
 # Run MAYA on RunPod
 
-One command from the repo root starts **maya-server**, **OWL worker** (port 5000), **opencode** (if installed), and **ngrok**.
+One command from the repo root starts **maya-server**, **OWL worker** (port 5000), **opencode** (if installed), and **Cloudflare Tunnel** (cloudflared).
 
 ## 1. One-time setup on the pod
 
@@ -21,12 +21,12 @@ cd /workspace/MAYA
 
 ```bash
 cp src/owl-backend/.env.example src/owl-backend/.env
-# Edit .env: set OPENROUTER_API_KEY, NGROK_AUTHTOKEN, and NGROK_DOMAIN (your reserved ngrok domain)
+# Edit .env: set OPENROUTER_API_KEY, CLOUDFLARE_TUNNEL_TOKEN, and CLOUDFLARE_PUBLIC_URL
 ```
 
-Required in `.env` for ngrok tunnel: `NGROK_AUTHTOKEN`, and `NGROK_DOMAIN` (e.g. `nondetonating-cecile-nongrounded.ngrok-free.dev`). Or set these as RunPod pod environment variables.
+Required in `.env` for Cloudflare Tunnel: `CLOUDFLARE_TUNNEL_TOKEN` (from Zero Trust → Networks → Connectors → your tunnel → Install), and `CLOUDFLARE_PUBLIC_URL=https://maya.cfargotunnel.com`.
 
-**Frontend (remote workspace / chat):** To avoid 401 on health and chat, add the worker token in the app. Get it from `https://<your-ngrok-domain>/token` and paste it when connecting to the MAYA worker so requests include `Authorization: Bearer <token>`.
+**Frontend (remote workspace / chat):** To avoid 401 on health and chat, add the worker token in the app. Get it from `https://maya.cfargotunnel.com/token` and paste it when connecting to the MAYA worker so requests include `Authorization: Bearer <token>`.
 
 ## 2. Run everything
 
@@ -53,17 +53,18 @@ chmod +x runpod-start.sh
 
 This will:
 
-1. Install Bun, ngrok, and project deps if needed.
-2. **Start ngrok tunnel FIRST** (so you see "NGROK TUNNEL IS RUNNING" or "NGROK FAILED" in the terminal before anything else).
-3. Start **opencode** on port 4096 (if `opencode` is in PATH).
-4. Start **maya-server** on port 8787.
-5. Start **OWL worker** on port 5000 (from `src/owl-backend`).
+1. Install Bun, cloudflared, and project deps if needed.
+2. Start **opencode** on port 4096 (if `opencode` is in PATH).
+3. Start **maya-server** on port 8787.
+4. Start **OWL worker** on port 5000 (from `src/owl-backend`).
+5. Start **Cloudflare Tunnel** (if `CLOUDFLARE_TUNNEL_TOKEN` is set in `.env`).
 
-If the public URL shows **endpoint is offline (ERR_NGROK_3200)**:
+If the public URL does not load (e.g. ERR_NAME_NOT_RESOLVED):
 
-- Ensure you have the latest script: `git checkout -- runpod-start.sh && git pull origin master`
-- Ensure `src/owl-backend/.env` contains `NGROK_AUTHTOKEN` and `NGROK_DOMAIN` (no quotes, no spaces around `=`).
-- On the pod run: `tail -30 /tmp/ngrok.log` — if you see `ERR_NGROK_334` (endpoint already online), run `pkill -9 ngrok; sleep 4` then `./runpod-start.sh` again.
+- The hostname must resolve: use **https://maya.cfargotunnel.com** (subdomain `maya`, domain `cfargotunnel.com` in Route tunnel). Names like `maya.mayarunpod` fail because `mayarunpod` is not a real domain.
+- In **Route tunnel**, set the service to `http://localhost:8787`.
+- Ensure `CLOUDFLARE_PUBLIC_URL` in `.env` matches the hostname you set in Route tunnel.
+- Check tunnel logs: `tail -30 /tmp/cloudflared.log`. If the tunnel exits, run `pkill -9 cloudflared; sleep 2` then `./runpod-start.sh` again.
 
 If the OWL worker fails, check: `tail -50 /tmp/owl-worker.log`
 
@@ -71,17 +72,15 @@ If the OWL worker fails, check: `tail -50 /tmp/owl-worker.log`
 
 ## 3. After it’s running
 
-- **Public URL:** printed at the end (e.g. `https://nondetonating-cecile-nongrounded.ngrok-free.dev`).
-- **Health:**  
-  `https://<NGROK_DOMAIN>/health`  
-  `https://<NGROK_DOMAIN>/ping` (proxies to OWL; expect `"message":"pong"` if OWL is up).
-- **Debug key:**  
-  `https://<NGROK_DOMAIN>/worker/debug/test-key`  
-  Optional: `?model=google/gemini-2.5-flash`.
+- **Public URL:** `https://maya.cfargotunnel.com` (set `CLOUDFLARE_PUBLIC_URL=https://maya.cfargotunnel.com` in `.env`).
+- **Health:** `https://maya.cfargotunnel.com/health`
+- **Token:** `https://maya.cfargotunnel.com/token`
+- **OWL ping:** `https://maya.cfargotunnel.com/worker/ping` (expect `"message":"pong"` if OWL is up).
+- **Debug key:** `https://maya.cfargotunnel.com/worker/debug/test-key` (optional: `?model=google/gemini-2.5-flash`).
 
 **Frontend (Netlify / Vercel / local):** set so the app uses this backend:
 
-- `VITE_OPENWORK_URL=https://nondetonating-cecile-nongrounded.ngrok-free.dev`
-- `VITE_API_URL=https://nondetonating-cecile-nongrounded.ngrok-free.dev/` (optional; same base URL)
+- `VITE_OPENWORK_URL=https://maya.cfargotunnel.com`
+- `VITE_API_URL=https://maya.cfargotunnel.com/` (optional; same base URL)
 
 The client token is printed by the script; the frontend can also fetch it from `/token`.

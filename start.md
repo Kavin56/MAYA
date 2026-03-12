@@ -5,7 +5,7 @@
 ```powershell
 cd D:\MAYA
 
-# Clear any inherited ngrok env vars, then start everything
+# Clear any inherited tunnel env vars, then start everything
 $env:VITE_OPENWORK_URL = ''; $env:VITE_OPENWORK_TOKEN = ''
 pnpm dev:headless-web
 ```
@@ -14,7 +14,7 @@ Open: **http://localhost:5173**
 
 - OpenCode + MAYA auto-connect via local orchestrator (port 4500)
 - Full chat, sessions, scheduled jobs work
-- No RunPod or ngrok needed
+- No RunPod or tunnel needed
 
 > **Note:** `packages/app/.env.local` points to `http://127.0.0.1:4500` (fixed port).
 
@@ -31,18 +31,18 @@ Opens the native desktop app with OpenCode embedded.
 
 ---
 
-## RunPod Production (Netlify/Vercel → ngrok → RunPod)
+## RunPod Production (Netlify/Vercel → Cloudflare Tunnel → RunPod)
 
 ### 1. Start backend on RunPod
 ```bash
 # In RunPod terminal
 bash runpod-start.sh
-# Copy the ngrok URL printed at the end
+# Use tunnel URL https://maya.cfargotunnel.com (set CLOUDFLARE_PUBLIC_URL in RunPod .env)
 ```
 
 ### 2. Set env vars on Netlify/Vercel dashboard
 ```
-VITE_OPENWORK_URL=https://your-ngrok-url.ngrok-free.app
+VITE_OPENWORK_URL=https://maya.cfargotunnel.com
 ```
 
 ### 3. Redeploy frontend (or env vars take effect on next deploy)
@@ -68,5 +68,5 @@ python src/maya_workforce.py
 |---|---|
 | `packages/app/.env.local` | Local dev — points to `http://127.0.0.1:4500` |
 | `.env` | Root env — `OPENWORK_PORT=4500`, `GOOGLE_API_KEY` |
-| `runpod-start.sh` | RunPod setup + ngrok tunnel |
+| `runpod-start.sh` | RunPod setup + Cloudflare tunnel |
 | `src/maya_workforce.py` | OWL multi-agent system |

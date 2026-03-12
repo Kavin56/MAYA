@@ -66,4 +66,4 @@ tmux new-session -d -s owl-worker "OPENROUTER_API_KEY=${OPENROUTER_API_KEY} uvic
 
 echo "Worker started on port 5000 in tmux session 'owl-worker'."
 
-echo "To expose to the internet, run: ngrok http 5000"
+echo "To expose to the internet, use runpod-start.sh (Cloudflare Tunnel) or run: cloudflared tunnel run --token <token>"
