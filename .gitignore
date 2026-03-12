@@ -31,6 +31,7 @@ packages/server/cli
 !.env.local.example
 # RunPod/local secrets — create from .env.example, never commit
 src/owl-backend/.env
+src/owl-backend/.env.example
 src/owl-backend/runpod.env
 # RunPod deployment guide (may contain Cloudflare tunnel token)
 RUNPOD_DEPLOYMENT.md
