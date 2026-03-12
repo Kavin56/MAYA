@@ -51,11 +51,10 @@ This repo includes:
 3. Set **Branch** to `master` and **Folder** to `/docs`
 4. Save. Your stable URL will look like `https://<username>.github.io/MAYA/` (GitHub shows it).
 
-**Each time you restart RunPod**
+**Updating the redirect when the tunnel URL changes**
 
-1. Copy the new Quick Tunnel URL printed by `runpod-start.sh`
-2. Update `docs/tunnel.json` `"url"` to that value
-3. Push to GitHub; within a minute or two, the GitHub Pages URL will redirect to the new tunnel.
+- **Automatic (recommended):** In `src/owl-backend/.env` set `GITHUB_TOKEN` (a [GitHub fine-grained PAT](https://github.com/settings/tokens) with **Contents** read/write) and `GITHUB_REPO=YourUsername/MAYA`. Each time you run `./runpod-start.sh`, the script will update `docs/tunnel.json` with the new Quick Tunnel URL and push to GitHub so your Pages URL redirects to it.
+- **Manual:** Copy the new Quick Tunnel URL from the script output, edit `docs/tunnel.json` `"url"` to that value, then push to GitHub.
 
 ## 2. Run everything
 

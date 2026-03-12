@@ -31,6 +31,8 @@ fi
 export CLOUDFLARE_TUNNEL_TOKEN="${CLOUDFLARE_TUNNEL_TOKEN:-}"
 export CLOUDFLARE_PUBLIC_URL="${CLOUDFLARE_PUBLIC_URL:-}"
 export CLOUDFLARE_QUICK_TUNNEL="${CLOUDFLARE_QUICK_TUNNEL:-0}"
+export GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+export GITHUB_REPO="${GITHUB_REPO:-}"
 
 
 
@@ -343,6 +345,24 @@ if [ "$CLOUDFLARE_QUICK_TUNNEL" = "1" ] || [ "$CLOUDFLARE_QUICK_TUNNEL" = "true"
     if [ -n "$QUICK_URL" ]; then
       export CLOUDFLARE_PUBLIC_URL="$QUICK_URL"
       echo "  Public URL: $CLOUDFLARE_PUBLIC_URL"
+      # Optional: push new URL to GitHub so Pages redirect updates automatically
+      if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPO" ]; then
+        set +e
+        TUNNEL_JSON="$PROJECT_ROOT/docs/tunnel.json"
+        if [ -f "$TUNNEL_JSON" ]; then
+          printf '{"url":"%s"}\n' "$QUICK_URL" > "$TUNNEL_JSON"
+          if ! git -C "$PROJECT_ROOT" diff --quiet -- docs/tunnel.json 2>/dev/null; then
+            git -C "$PROJECT_ROOT" add docs/tunnel.json
+            git -C "$PROJECT_ROOT" -c user.name="RunPod" -c user.email="runpod@localhost" commit -m "Update tunnel URL (RunPod)" -q 2>/dev/null
+            if git -C "$PROJECT_ROOT" push "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git" master -q 2>/dev/null; then
+              echo "  GitHub Pages pointer updated (docs/tunnel.json pushed)."
+            else
+              echo "  [skip] GitHub push failed (check GITHUB_TOKEN and GITHUB_REPO)."
+            fi
+          fi
+        fi
+        set -e
+      fi
     else
       echo "  Public URL not detected yet. Run: tail -50 /tmp/cloudflared.log"
     fi
