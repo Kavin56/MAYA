@@ -35,6 +35,28 @@ The script will print a public URL like `https://<random>.trycloudflare.com` (ep
 **Frontend (remote workspace / chat):** Use the printed public URL.
 Get the worker token from `<public-url>/token` and paste it when connecting so requests include `Authorization: Bearer <token>`.
 
+### Optional: stable URL via GitHub Pages (free)
+
+Quick Tunnel URLs change each time you restart `cloudflared`. If you want a stable link **without buying a domain**, you can use GitHub Pages as a “pointer” that redirects to the *current* tunnel URL.
+
+This repo includes:
+
+- `docs/index.html` — reads `docs/tunnel.json` and redirects
+- `docs/tunnel.json` — stores the current `https://<random>.trycloudflare.com` URL
+
+**One-time setup**
+
+1. In GitHub, open repo settings → **Pages**
+2. Set **Source** to “Deploy from a branch”
+3. Set **Branch** to `master` and **Folder** to `/docs`
+4. Save. Your stable URL will look like `https://<username>.github.io/MAYA/` (GitHub shows it).
+
+**Each time you restart RunPod**
+
+1. Copy the new Quick Tunnel URL printed by `runpod-start.sh`
+2. Update `docs/tunnel.json` `"url"` to that value
+3. Push to GitHub; within a minute or two, the GitHub Pages URL will redirect to the new tunnel.
+
 ## 2. Run everything
 
 ### After you push code — on RunPod (copy-paste)
