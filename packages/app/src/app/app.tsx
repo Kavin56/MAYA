@@ -2152,6 +2152,7 @@ export default function App() {
         baseUrl,
         directory,
         auth,
+        getToken: () => openworkServerSettings().token?.trim() || undefined,
       };
     }
     return {
@@ -2198,7 +2199,9 @@ export default function App() {
     try {
       const start = Date.now();
       let directory = config.directory;
-      let c = createClient(config.baseUrl, directory || undefined, config.auth);
+      let c = createClient(config.baseUrl, directory || undefined, config.auth, {
+        getToken: "getToken" in config ? (config as { getToken?: () => string | undefined }).getToken : undefined,
+      });
 
       if (!directory) {
         try {
@@ -2206,7 +2209,9 @@ export default function App() {
           const discovered = normalizeDirectoryPath(pathInfo.directory ?? "");
           if (discovered) {
             directory = discovered;
-            c = createClient(config.baseUrl, directory, config.auth);
+            c = createClient(config.baseUrl, directory, config.auth, {
+              getToken: "getToken" in config ? (config as { getToken?: () => string | undefined }).getToken : undefined,
+            });
           }
         } catch {
           // ignore
@@ -3798,7 +3803,9 @@ export default function App() {
       const auth = openworkServerAuth();
       if (openworkBaseUrl && auth.token) {
         const opencodeUrl = `${openworkBaseUrl.replace(/\/+$/, "")}/opencode`;
-        activeClient = createClient(opencodeUrl, undefined, { token: auth.token, mode: "openwork" });
+        activeClient = createClient(opencodeUrl, undefined, { token: auth.token, mode: "openwork" }, {
+          getToken: () => openworkServerSettings().token?.trim() || undefined,
+        });
         setClient(activeClient);
       }
     }
@@ -3991,7 +3998,9 @@ export default function App() {
       const auth = openworkServerAuth();
       if (openworkBaseUrl && auth.token) {
         const opencodeUrl = `${openworkBaseUrl.replace(/\/+$/, "")}/opencode`;
-        activeClient = createClient(opencodeUrl, undefined, { token: auth.token, mode: "openwork" });
+        activeClient = createClient(opencodeUrl, undefined, { token: auth.token, mode: "openwork" }, {
+          getToken: () => openworkServerSettings().token?.trim() || undefined,
+        });
         setClient(activeClient);
       }
     }

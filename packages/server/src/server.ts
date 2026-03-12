@@ -843,6 +843,9 @@ function withCors(response: Response, request: Request, config: ServerConfig) {
     allowOrigin = "*";
   } else if (origin && allowedOrigins.includes(origin)) {
     allowOrigin = origin;
+  } else if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+    // Allow localhost/127.0.0.1 in dev so desktop (e.g. localhost:5173) can call ngrok without CORS errors
+    allowOrigin = origin;
   }
 
   if (!allowOrigin) return response;

@@ -907,6 +907,14 @@ async function requestJson<T>(
   const text = await response.text();
   const json = text ? JSON.parse(text) : null;
 
+  if (response.status === 401 && typeof window !== "undefined" && baseUrl) {
+    try {
+      await hydrateOpenworkServerTokenFromRemote(baseUrl);
+    } catch {
+      // ignore
+    }
+  }
+
   if (!response.ok) {
     const code = typeof json?.code === "string" ? json.code : "request_failed";
     const message = typeof json?.message === "string" ? json.message : response.statusText;

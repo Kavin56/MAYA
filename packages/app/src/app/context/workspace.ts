@@ -1240,7 +1240,13 @@ export function createWorkspaceStore(options: {
 
       try {
         let resolvedDirectory = directory?.trim() ?? "";
-        let nextClient = createClient(nextBaseUrl, resolvedDirectory || undefined, auth);
+        const openworkGetToken =
+          auth?.mode === "openwork"
+            ? () => options.openworkServerSettings().token?.trim() || undefined
+            : undefined;
+        let nextClient = createClient(nextBaseUrl, resolvedDirectory || undefined, auth, {
+          getToken: openworkGetToken,
+        });
         const healthTimeoutMs = resolveConnectHealthTimeoutMs(context?.reason);
         const health = await waitForHealthy(nextClient, { timeoutMs: healthTimeoutMs });
         connectMetrics.healthyMs = Date.now() - connectStart;
@@ -1266,7 +1272,9 @@ export function createWorkspaceStore(options: {
                 syncActiveWorkspaceId(updated.activeId);
               }
               setProjectDir(resolvedDirectory);
-              nextClient = createClient(nextBaseUrl, resolvedDirectory, auth);
+              nextClient = createClient(nextBaseUrl, resolvedDirectory, auth, {
+                getToken: openworkGetToken,
+              });
             }
           } catch (error) {
             console.log("[workspace] remote directory lookup failed", error);

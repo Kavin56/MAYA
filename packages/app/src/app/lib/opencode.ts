@@ -2,6 +2,7 @@ import { createOpencodeClient } from "@opencode-ai/sdk/v2/client";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 
 import { isTauriRuntime } from "../utils";
+import { hydrateOpenworkServerTokenFromRemote } from "./openwork-server";
 
 type FieldsResult<T> =
   | ({ data: T; error?: undefined } & { request: Request; response: Response })
@@ -93,12 +94,26 @@ const serializeHeaders = (headers: HeadersInit | undefined): Record<string, stri
   return headers as Record<string, string>;
 };
 
-const createTauriFetch = (auth?: OpencodeAuth) => {
+const createTauriFetch = (auth?: OpencodeAuth, getToken?: () => string | undefined) => {
   const authHeader = resolveAuthHeader(auth);
+  const useRequestTimeToken = Boolean(getToken && auth?.mode === "openwork");
   const addAuth = (headers: Record<string, string>) => {
     const authKey = Object.keys(headers).find(k => k.toLowerCase() === "authorization");
-    if (!authHeader || authKey) return;
-    headers["Authorization"] = authHeader;
+    if (authKey) return;
+    const h = useRequestTimeToken
+      ? (getToken?.()?.trim() ? `Bearer ${getToken?.()?.trim()}` : null)
+      : authHeader;
+    if (h) headers["Authorization"] = h;
+  };
+
+  const run401Refresh = async (urlString: string, res: Response) => {
+    if (res.status !== 401 || auth?.mode !== "openwork") return;
+    try {
+      const origin = new URL(urlString).origin;
+      await hydrateOpenworkServerTokenFromRemote(origin);
+    } catch {
+      // ignore
+    }
   };
 
   return async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -130,12 +145,14 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
 
       // Rebuilding a Request instance drops the object, so we must invoke globalThis.fetch directly with URL + init
       const timeoutOverride = input.url.includes("/event/subscribe") ? 0 : DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS;
-      return fetchWithTimeout(
+      const res = await fetchWithTimeout(
         globalThis.fetch,
         input.url,
         newInit,
         timeoutOverride,
       );
+      await run401Refresh(input.url, res);
+      return res;
     }
 
     const headers = serializeHeaders(init?.headers);
@@ -144,7 +161,7 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
     const urlString = typeof input === "string" ? input : (input instanceof Request ? input.url : input.toString());
     const timeoutOverride = urlString.includes("/event/subscribe") ? 0 : DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS;
 
-    return fetchWithTimeout(
+    const res = await fetchWithTimeout(
       globalThis.fetch,
       input,
       {
@@ -153,6 +170,8 @@ const createTauriFetch = (auth?: OpencodeAuth) => {
       },
       timeoutOverride,
     );
+    await run401Refresh(urlString, res);
+    return res;
   };
 };
 
@@ -173,12 +192,14 @@ export function createClient(
   baseUrl: string,
   directory?: string,
   auth?: OpencodeAuth,
-  options?: any
+  options?: { getToken?: () => string | undefined; headers?: Record<string, string>; [k: string]: unknown }
 ) {
+  const getToken = options?.getToken;
+  const useRequestTimeToken = Boolean(getToken && auth?.mode === "openwork");
   const headers: Record<string, string> = {
     "ngrok-skip-browser-warning": "1",
   };
-  if (!isTauriRuntime()) {
+  if (!isTauriRuntime() && !useRequestTimeToken) {
     const authHeader = resolveAuthHeader(auth);
     if (authHeader) {
       headers.Authorization = authHeader;
@@ -192,15 +213,34 @@ export function createClient(
   // #endregion
 
   const fetchImpl = isTauriRuntime()
-    ? createTauriFetch(auth)
-    : (input: RequestInfo | URL, init?: RequestInit) =>
-      fetchWithTimeout(globalThis.fetch, input, init, DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS);
+    ? createTauriFetch(auth, getToken)
+    : async (input: RequestInfo | URL, init?: RequestInit) => {
+        let mergedInit = init;
+        if (useRequestTimeToken && getToken) {
+          const token = getToken()?.trim();
+          const h = init?.headers ? new Headers(init.headers) : new Headers();
+          if (token) h.set("Authorization", `Bearer ${token}`);
+          mergedInit = { ...init, headers: h };
+        }
+        const res = await fetchWithTimeout(globalThis.fetch, input, mergedInit, DEFAULT_OPENCODE_REQUEST_TIMEOUT_MS);
+        if (res.status === 401 && typeof window !== "undefined" && auth?.mode === "openwork") {
+          try {
+            const urlString = typeof input === "string" ? input : (input instanceof URL ? input.toString() : (input as Request).url ?? "");
+            const origin = new URL(urlString).origin;
+            await hydrateOpenworkServerTokenFromRemote(origin);
+          } catch {
+            // ignore
+          }
+        }
+        return res;
+      };
+  const { getToken: _gt, ...restOptions } = options ?? {};
   return createOpencodeClient({
     baseUrl,
     directory,
-    headers: Object.keys(headers).length ? Object.assign(headers, options?.headers) : options?.headers,
+    headers: Object.keys(headers).length ? Object.assign(headers, restOptions?.headers) : restOptions?.headers,
     fetch: fetchImpl,
-    ...options,
+    ...restOptions,
   });
 }
 
