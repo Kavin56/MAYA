@@ -16,8 +16,7 @@ const addHost = (value?: string | null) => {
 
 envAllowedHosts.split(",").forEach(addHost);
 addHost(process.env.OPENWORK_PUBLIC_HOST ?? null);
-// Allow the ngrok tunnel domain for RunPod remote backend testing
-addHost("nondetonating-cecile-nongrounded.ngrok-free.dev");
+addHost(process.env.VITE_OPENWORK_URL ?? null);
 const hostname = os.hostname();
 addHost(hostname);
 const shortHostname = hostname.split(".")[0];

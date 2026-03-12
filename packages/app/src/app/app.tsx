@@ -2015,8 +2015,14 @@ export default function App() {
     localStorage.setItem("maya.owlExecutionMode", mode);
 
     if (mode === "cloud") {
-      const staticCloudUrl = "https://nondetonating-cecile-nongrounded.ngrok-free.dev";
-      const tokenUrl = `${staticCloudUrl}/token`;
+      const staticCloudUrl =
+        (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_OPENWORK_URL) ||
+        "";
+      if (!staticCloudUrl) {
+        console.warn("[OWL] Cloud mode: set VITE_OPENWORK_URL to your tunnel URL (e.g. Cloudflare public URL)");
+        return;
+      }
+      const tokenUrl = `${staticCloudUrl.replace(/\/+$/, "")}/token`;
 
       const doFetch = isTauriRuntime()
         ? tauriFetch(tokenUrl, { method: "GET", headers: { "ngrok-skip-browser-warning": "1" } })
