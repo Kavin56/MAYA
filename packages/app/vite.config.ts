@@ -16,7 +16,8 @@ const addHost = (value?: string | null) => {
 
 envAllowedHosts.split(",").forEach(addHost);
 addHost(process.env.OPENWORK_PUBLIC_HOST ?? null);
-addHost(process.env.VITE_OPENWORK_URL ?? null);
+// Allow the ngrok tunnel domain for RunPod remote backend testing
+addHost("unameliorative-regretably-kimberly.ngrok-free.dev");
 const hostname = os.hostname();
 addHost(hostname);
 const shortHostname = hostname.split(".")[0];
