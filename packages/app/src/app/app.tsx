@@ -440,11 +440,21 @@ export default function App() {
     const stored = readOpenworkServerSettings();
     const invite = readOpenworkConnectInviteFromSearch(window.location.search);
 
+    // NOTE: Hardcoded current ngrok URL — change this when the ngrok domain rotates
+    const HARDCODED_OPENWORK_URL = "https://unameliorative-regretably-kimberly.ngrok-free.dev";
+
     const headlessWebUrlPresent =
-      typeof import.meta.env?.VITE_OPENWORK_URL === "string" &&
-      import.meta.env.VITE_OPENWORK_URL.trim().length > 0;
-    if (headlessWebUrlPresent && untrack(startupPreference) !== "server") {
-      setStartupPreference("server");
+      (typeof import.meta.env?.VITE_OPENWORK_URL === "string" &&
+        import.meta.env.VITE_OPENWORK_URL.trim().length > 0) ||
+      Boolean(HARDCODED_OPENWORK_URL);
+
+    if (headlessWebUrlPresent) {
+      if (untrack(startupPreference) !== "server") {
+        setStartupPreference("server");
+      }
+      if (untrack(owlExecutionMode) !== "cloud") {
+        setOwlExecutionMode("cloud");
+      }
     }
 
     if (!invite) {
