@@ -52,6 +52,9 @@ export function ServerProvider(props: ParentProps & { defaultUrl: string }) {
     }
   };
 
+  // NOTE: Hardcoded current ngrok URL — change this when the ngrok domain rotates
+  const HARDCODED_OPENWORK_URL = "https://unameliorative-regretably-kimberly.ngrok-free.dev";
+
   createEffect(() => {
     if (typeof window === "undefined") return;
     if (ready()) return;
@@ -61,12 +64,24 @@ export function ServerProvider(props: ParentProps & { defaultUrl: string }) {
     // In production web builds served by OpenWork (Docker "remote" mode), OpenCode
     // traffic should go through the server proxy (usually same-origin `/opencode`).
     // Do not reuse any persisted localhost targets.
+    // Also force when VITE_OPENWORK_URL or hardcoded URL is configured.
+    const configuredOpenworkUrl = (typeof import.meta.env?.VITE_OPENWORK_URL === "string"
+      ? import.meta.env.VITE_OPENWORK_URL.trim()
+      : "") || HARDCODED_OPENWORK_URL;
+
     const forceProxy =
       !isTauriRuntime() &&
       (import.meta.env.PROD ||
-        (typeof import.meta.env?.VITE_OPENWORK_URL === "string" &&
-          import.meta.env.VITE_OPENWORK_URL.trim().length > 0));
+        Boolean(configuredOpenworkUrl));
+
     if (forceProxy && fallback) {
+      // Wipe any stale cached server URLs so the old ngrok domain can never win
+      try {
+        window.localStorage.removeItem("maya.server.active");
+        window.localStorage.removeItem("maya.server.list");
+      } catch {
+        // ignore
+      }
       setList([fallback]);
       setActiveRaw(fallback);
       setReady(true);
@@ -83,6 +98,7 @@ export function ServerProvider(props: ParentProps & { defaultUrl: string }) {
     setActiveRaw(initialActive);
     setReady(true);
   });
+
 
   createEffect(() => {
     if (!ready()) return;
