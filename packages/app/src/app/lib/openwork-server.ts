@@ -665,21 +665,21 @@ export function hydrateOpenworkServerSettingsFromEnv() {
     let changed = false;
     const isHeadlessWeb = Boolean(envUrl && envToken);
 
-    if (envUrl && (isHeadlessWeb || !current.urlOverride)) {
+    if (envUrl) {
       const normalized = normalizeOpenworkServerUrl(envUrl) ?? undefined;
       if (normalized !== current.urlOverride) {
         next.urlOverride = normalized;
         changed = true;
       }
     }
-    if (envPort && (isHeadlessWeb || !current.portOverride)) {
+    if (envPort) {
       const parsed = Number(envPort);
       if (Number.isFinite(parsed) && parsed > 0 && parsed !== current.portOverride) {
         next.portOverride = parsed;
         changed = true;
       }
     }
-    if (envToken && (isHeadlessWeb || !current.token)) {
+    if (envToken) {
       if (envToken !== (current.token ?? "")) {
         next.token = envToken;
         changed = true;
