@@ -9,6 +9,7 @@ export default function CreateWorkspaceModal(props: {
   open: boolean;
   onClose: () => void;
   onConfirm: (preset: "starter" | "automation" | "minimal", folder: string | null) => void;
+  onConfirmRemote?: (preset: "starter" | "automation" | "minimal", folder: string | null) => void;
   onConfirmWorker?: (preset: "starter" | "automation" | "minimal", folder: string | null) => void;
   onPickFolder: () => Promise<string | null>;
   submitting?: boolean;
@@ -427,7 +428,13 @@ export default function CreateWorkspaceModal(props: {
             </Button>
           </Show>
           <Button
-            onClick={() => props.onConfirm(preset(), selectedFolder())}
+            onClick={() => {
+              if (folderMode() === "remote") {
+                props.onConfirmRemote?.(preset(), selectedFolder());
+              } else {
+                props.onConfirm(preset(), selectedFolder());
+              }
+            }}
             disabled={!selectedFolder() || submitting()}
             title={!selectedFolder() ? translate("dashboard.choose_folder_continue") : undefined}
           >

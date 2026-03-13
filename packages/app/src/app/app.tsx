@@ -5650,6 +5650,20 @@ export default function App() {
         onConfirm={(preset, folder) =>
           workspaceStore.createWorkspaceFlow(preset, folder)
         }
+        onConfirmRemote={(preset, folder) => {
+          workspaceStore.setCreateWorkspaceOpen(false);
+          const settings = openworkServerSettings();
+          if (!settings.urlOverride) {
+            workspaceStore.setCreateRemoteWorkspaceOpen(true);
+            return;
+          }
+          workspaceStore.createRemoteWorkspaceFlow({
+            openworkHostUrl: settings.urlOverride,
+            openworkToken: settings.token,
+            directory: folder,
+            displayName: folder ? folder.split("/").filter(Boolean).pop() : "Worker",
+          });
+        }}
         onConfirmWorker={
           isTauriRuntime()
             ? async (preset, folder) => {
