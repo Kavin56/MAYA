@@ -5,6 +5,9 @@ import { LocalProvider } from "./context/local";
 import { ServerProvider } from "./context/server";
 import { isTauriRuntime } from "./utils";
 
+// NOTE: Hardcoded current ngrok URL — change this when the ngrok domain rotates
+const HARDCODED_OPENWORK_URL = "https://unameliorative-regretably-kimberly.ngrok-free.dev";
+
 export default function AppEntry() {
   const defaultUrl = (() => {
     // Desktop app connects to the local OpenCode engine.
@@ -13,9 +16,9 @@ export default function AppEntry() {
     // When running the web UI against an OpenWork server (e.g. Docker dev stack),
     // use the server's `/opencode` proxy instead of loopback.
     const openworkUrl =
-      typeof import.meta.env?.VITE_OPENWORK_URL === "string"
+      (typeof import.meta.env?.VITE_OPENWORK_URL === "string"
         ? import.meta.env.VITE_OPENWORK_URL.trim()
-        : "";
+        : "") || HARDCODED_OPENWORK_URL;
     if (openworkUrl) {
       return `${openworkUrl.replace(/\/+$/, "")}/opencode`;
     }

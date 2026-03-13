@@ -647,17 +647,22 @@ export function writeOpenworkServerSettings(next: OpenworkServerSettings): Openw
 export function hydrateOpenworkServerSettingsFromEnv() {
   if (typeof window === "undefined") return;
 
-  const envUrl = typeof import.meta.env?.VITE_OPENWORK_URL === "string"
+  // NOTE: Hardcoded current ngrok URL — change this when the ngrok domain rotates
+  const HARDCODED_OPENWORK_URL = "https://unameliorative-regretably-kimberly.ngrok-free.dev";
+  const HARDCODED_OPENWORK_TOKEN = "3AsGlODWFrruTjeoUYbH3N0uVgN_31vM8icuUDYZM11D4oqzX";
+
+  const envUrl = (typeof import.meta.env?.VITE_OPENWORK_URL === "string"
     ? import.meta.env.VITE_OPENWORK_URL.trim()
-    : "";
+    : "") || HARDCODED_OPENWORK_URL;
   const envPort = typeof import.meta.env?.VITE_OPENWORK_PORT === "string"
     ? import.meta.env.VITE_OPENWORK_PORT.trim()
     : "";
-  const envToken = typeof import.meta.env?.VITE_OPENWORK_TOKEN === "string"
+  const envToken = (typeof import.meta.env?.VITE_OPENWORK_TOKEN === "string"
     ? import.meta.env.VITE_OPENWORK_TOKEN.trim()
-    : "";
+    : "") || HARDCODED_OPENWORK_TOKEN;
 
   if (!envUrl && !envPort && !envToken) return;
+
 
   try {
     const current = readOpenworkServerSettings();
